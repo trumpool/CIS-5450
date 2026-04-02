@@ -8,12 +8,12 @@
 
 | Name | Responsibilities |
 |------|-----------------|
-| [Member 1] | Data acquisition (BTS flight data), data cleaning, data integration with weather data |
-| [Member 2] | Exploratory Data Analysis (EDA), data visualization, geographic analysis |
-| [Member 3] | Feature engineering, hypothesis testing, statistical analysis |
-| [Member 4] | Model building, model evaluation, tuning, and final notebook compilation |
+| Xiaoyang Wan | Model building, hyperparameter tuning, evaluation, and model comparison |
+| Dong Dong | EDA, visualizations, hypothesis testing, and key insight summarization |
+| Yihong Yu | Data downloading, cleaning, missing value handling, and outlier removal |
+| Yanchen Zhou | Weather data acquisition, flight-weather join, and feature matrix construction |
 
-*Note: All members will collaborate on the final presentation and review each other's work throughout the project.*
+*Note: All members will collaborate on the final presentation and review each other's work.*
 
 ---
 
