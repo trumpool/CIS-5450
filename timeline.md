@@ -25,15 +25,15 @@
 ### Week 1（4.2 – 4.7）：数据基础
 
 **Yihong Yu — 数据清洗**
-- [ ] 4.2-4.3：确认 12 个月 parquet 文件全部下载完整（共 7,079,061 行）
-- [ ] 4.4：处理缺失值 — `DepDelay`、`ArrDelay` 缺失行（已取消航班）单独标记，不直接删除
-- [ ] 4.5：去除异常值（延误 > 600 分钟视为异常，单独记录）
-- [ ] 4.6：统一数据类型（`FlightDate` 转 datetime，时间字段转 int）
-- [ ] 4.7：输出清洗后的 `flights_2024_clean.parquet`，记录清洗前后行数
+- [x] 4.2-4.3：确认 12 个月 parquet 文件全部下载完整（共 7,079,061 行）
+- [x] 4.2-4.3：从 NOAA ISD-Lite 下载前 50 大机场 2024 年天气数据
+- [x] 4.4：处理缺失值 — `DepDelay`、`ArrDelay` 缺失行（已取消航班）单独标记，不直接删除
+- [x] 4.4：用 isd-history.txt 建立 IATA ↔ 气象站ID 映射表
+- [x] 4.5：去除异常值（延误 > 600 分钟视为异常，单独记录）
+- [x] 4.6：统一数据类型（`FlightDate` 转 datetime，时间字段转 int）
+- [x] 4.7：输出清洗后的 `flights_2024_clean.parquet`，记录清洗前后行数
 
 **Yanchen Zhou — 天气数据整合**
-- [ ] 4.2-4.3：从 NOAA ISD-Lite 下载前 50 大机场 2024 年天气数据
-- [ ] 4.4：用 isd-history.txt 建立 IATA ↔ 气象站ID 映射表
 - [ ] 4.5-4.6：按 `Origin + 最近整点` join 出发机场天气；按 `Dest + 最近整点` join 到达机场天气
 - [ ] 4.7：处理天气缺失值（线性插值或前向填充）
 - [ ] 4.8：输出合并后的 `flights_2024_weather.parquet`

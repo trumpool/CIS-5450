@@ -1,0 +1,24 @@
+# used for local venv
+# Install: pip install -r requirements.txt
+
+# Data / parquet
+pandas>=2.0
+numpy>=1.26
+pyarrow>=14.0
+
+# Downloads & progress
+requests>=2.31
+certifi>=2024.0.0
+tqdm>=4.66
+
+# Visualization (week1_eda, etc.)
+matplotlib>=3.8
+seaborn>=0.13
+
+# Jupyter in venv (kernels for Cursor/VS Code / classic Jupyter)
+jupyter>=1.0
+ipykernel>=6.29
+ipywidgets>=8.0
+
+# Hugging Face dataset uploads / downloads
+huggingface_hub>=0.24
