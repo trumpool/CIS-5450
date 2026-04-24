@@ -83,8 +83,20 @@ Temporal split: train on Jan–Oct, test on Nov–Dec (prevents future leakage)
 | XGBoost + SMOTE | 0.878 | 0.809 | 0.418 | 0.551 | 0.814 |
 | LightGBM + SMOTE | 0.878 | 0.797 | 0.424 | 0.554 | 0.815 |
 
-Best model: **LightGBM (class-weighted)** — AUC-ROC = 0.817
-最佳模型：LightGBM（类别加权）— AUC-ROC = 0.817
+Best classification model: **LightGBM (class-weighted)** — AUC-ROC = 0.817
+最佳分类模型：LightGBM（类别加权）— AUC-ROC = 0.817
+
+#### Regression (target: `DepDelay` — continuous delay in minutes) / 回归（目标：DepDelay — 连续延误分钟数）
+
+| Model / 模型 | RMSE | MAE | R² |
+|---|---|---|---|
+| Naive (predict mean) / 朴素基线 | 37.95 | 21.24 | −0.006 |
+| Linear Regression / 线性回归 | 34.80 | 16.52 | 0.154 |
+| Ridge Regression / 岭回归 | 34.80 | 16.52 | 0.154 |
+| **LightGBM Regressor** | **32.47** | **13.62** | **0.263** |
+
+Best regression model: **LightGBM Regressor** — R² = 0.263, MAE = 13.62 min
+最佳回归模型：LightGBM 回归器 — R² = 0.263，MAE = 13.62 分钟
 
 ---
 
@@ -124,8 +136,9 @@ Best model: **LightGBM (class-weighted)** — AUC-ROC = 0.817
 
 | Task / 任务 | Deadline / 截止 |
 |---|---|
-| Hyperparameter tuning (GridSearch / Optuna) / 超参数调优 | Apr 21 |
-| Threshold optimization (precision-recall tradeoff) / 阈值优化 | Apr 22 |
+| ~~Hyperparameter tuning (GridSearch / Optuna) / 超参数调优~~ | ~~Apr 21~~ ✅ |
+| ~~Threshold optimization (precision-recall tradeoff) / 阈值优化~~ | ~~Apr 22~~ ✅ |
+| ~~Regression modeling / 回归建模~~ | ~~Apr 17~~ ✅ |
 | Final notebook integration with Markdown annotations / Notebook 最终整合与注释 | Apr 25 |
 | Difficulty concept locator notebook / 难度概念定位 Notebook | Apr 25 |
 | Presentation slides / 演讲 PPT | Apr 26 |
@@ -147,3 +160,5 @@ Best model: **LightGBM (class-weighted)** — AUC-ROC = 0.817
 | Hypothesis testing | `03_eda/hypothesis_testing.ipynb` | 4 simulation-based tests |
 | Baseline models | `04_modeling/baseline_model.ipynb` | LR + Random Forest |
 | Advanced models | `04_modeling/advanced_model.ipynb` | XGBoost + LightGBM + SMOTE |
+| Tuning & threshold | `04_modeling/tuning_optimization.ipynb` | Hyperparameter tuning + threshold optimization |
+| Regression models | `04_modeling/regression_model.ipynb` | Linear / Ridge / LightGBM regression |
