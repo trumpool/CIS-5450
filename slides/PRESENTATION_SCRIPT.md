@@ -1,418 +1,238 @@
-# Presentation Script — Flight Delay Prediction
+# Presentation Script — U.S. Flight Delay Prediction
 # 演讲讲稿 — 航班延误预测
 
-**Total target time**: 9–10 min
-**Slides**: 14
-**Charts location**: `slides/figs/`
-
----
-
-## 📂 Chart File Reference
-
-| Slide | Chart File | Notes |
-|---|---|---|
-| 5 | `slides/figs/slide_cascading_delay.png` | The killer chart — cascading delay |
-| 6 | `slides/figs/slide_temporal_patterns.png` | Hour + Month combined |
-| 7 | `slides/figs/slide_weather_effect.png` | Wind + Precipitation |
-| 8 | `slides/figs/slide_hypothesis_tests.png` | 4 test summary card |
-| 10 | `slides/figs/slide_model_performance.png` | AUC + P/R/F1 bars |
-| 11 | `slides/figs/slide_feature_importance.png` | Top 15 features |
+**Total target time**: ~9:15 (under 10 min)
+**Slides**: 23 (deck.html)
+**Speaking rate**: ~150 wpm assumed
 
 ---
 
 ## ⏱ Timing Plan
 
-| # | Slide | Time | Cumulative |
+| # | Slide | Target | Cumulative |
 |---|---|---|---|
-| 1 | Title | 0:10 | 0:10 |
-| 2 | The Problem | 0:45 | 0:55 |
-| 3 | Value Proposition | 0:40 | 1:35 |
-| 4 | Dataset | 0:45 | 2:20 |
-| 5 | EDA #1: Cascading Delay 🎯 | 1:00 | 3:20 |
-| 6 | EDA #2: Temporal Patterns | 0:40 | 4:00 |
-| 7 | EDA #3: Weather Effect | 0:40 | 4:40 |
-| 8 | Hypothesis Tests | 0:50 | 5:30 |
-| 9 | Modeling Approach | 0:45 | 6:15 |
-| 10 | Model Performance | 1:00 | 7:15 |
-| 11 | Feature Importance | 0:40 | 7:55 |
-| 12 | Implications: Insurance ROI 💰 | 1:00 | 8:55 |
-| 13 | Challenges & Future Work | 0:40 | 9:35 |
-| 14 | Q&A | 0:15 | 9:50 |
+| 1 | Cover | 0:15 | 0:15 |
+| 2 | The Problem ($30B) | 0:30 | 0:45 |
+| 3 | Stakeholders | 0:25 | 1:10 |
+| 4 | Dataset | 0:30 | 1:40 |
+| 5 | Data Quality | 0:25 | 2:05 |
+| 6 | Feature Engineering | 0:30 | 2:35 |
+| 7 | Cascading Delay ⭐ | 0:50 | 3:25 |
+| 8 | Temporal Patterns | 0:25 | 3:50 |
+| 9 | Weather | 0:25 | 4:15 |
+| 10 | Airline Reliability | 0:20 | 4:35 |
+| 11 | Hypothesis Tests | 0:35 | 5:10 |
+| 12 | Null Distributions | 0:20 | 5:30 |
+| 13 | Modeling Approach | 0:30 | 6:00 |
+| 14 | ROC Ladder | 0:25 | 6:25 |
+| 15 | SMOTE vs Weighted | 0:20 | 6:45 |
+| 16 | Hyperparameter Tuning | 0:20 | 7:05 |
+| 17 | Threshold Tuning | 0:20 | 7:25 |
+| 18 | Model Performance ⭐ | 0:50 | 8:15 |
+| 19 | Feature Importance | 0:25 | 8:40 |
+| 20 | Regression Detour | 0:25 | 9:05 |
+| 21 | Insurance ROI ⭐ | 0:50 | 9:55 |
+| 22 | Challenges & Future | 0:30 | 10:25 |
+| 23 | Thanks | 0:10 | 10:35 |
+
+> Buffer: targeting ~9:15 spoken, allowing ~45 s for transitions and pauses.
 
 ---
 
-# Slide 1 — Title
+## 1 · Cover · 0:15
 
-## On-Screen Content
+> "Hi, we're [team]. Our project is U.S. flight delay prediction — given everything you know before the gate, can we predict whether your flight will be late? Built on 6.8 million 2024 flight records joined with hourly weather. Let's go."
 
-**Title**: Predicting U.S. Flight Delays
-**Subtitle**: When will your flight be late, and why does it matter?
-
-CIS 5450 · Big Data Analytics · Spring 2026
-
-**Team**: Xiaoyang Wan · Dong Dong · Yihong Yu · Yanchen Zhou
-
-## 🎤 Speaker Notes (10 sec)
-
-> "Hi everyone. We're [team], and our project is U.S. flight delay prediction. We took a year of flight data and weather data, and built a model to predict whether your flight is going to be late. Let's get into it."
+*(35 words)*
 
 ---
 
-# Slide 2 — The Problem
+## 2 · The Problem ($30B) · 0:30
 
-## On-Screen Content
+> "Last year, nearly one in five U.S. domestic flights was late by 15 minutes or more. The FAA puts the total cost at 30 billion dollars a year. But the real problem isn't the dollar number — delays cascade. One late flight blows a connection, displaces an aircraft, forces a crew swap. Our question: how well can we predict this *before* the gate?"
 
-**Title**: Flight Delays Cost the U.S. **$30 Billion a Year**
-
-- Nearly **20%** of U.S. domestic flights are delayed ≥15 minutes
-- One delay cascades — missed connections, displaced crews, idle gates
-- The pain is felt by passengers, airlines, airports, and insurers
-- We use **6.8 million flight records** from 2024 to predict who's at risk
-
-**Visual hint**: Big "$30B" number on the right; small plane icon on the left
-
-## 🎤 Speaker Notes (45 sec)
-
-> "Last year, almost one in five domestic flights in the U.S. left late by 15 minutes or more. The FAA estimates the total economic cost of these delays at **30 billion dollars a year**.
->
-> But the bigger problem isn't just the dollar number — it's that delays *cascade*. One late flight makes a tight connection impossible. A displaced aircraft means the next flight starts late too. A delayed crew has to be replaced under FAA duty rules.
->
-> So our question was simple: *given everything we know before the plane is supposed to leave the gate, how well can we predict whether it'll actually be on time?* We built our system on 6.8 million flight records from all of 2024."
+*(67 words)*
 
 ---
 
-# Slide 3 — Value Proposition
+## 3 · Stakeholders · 0:25
 
-## On-Screen Content
+> "Why does anyone care? Four stakeholders. Passengers — pick the reliable flight, buy delay insurance. Airlines — pre-position crews, reroute aircraft. Airports — pre-staff gates. And insurers — price delay insurance more accurately. We'll come back to that insurance angle with concrete ROI numbers."
 
-**Title**: Who Benefits from Better Predictions?
-
-| Stakeholder | What they gain |
-|---|---|
-| ✈️ **Passengers** | Smarter booking, insurance, planning |
-| 🏢 **Airlines** | Proactive rebooking, crew scheduling |
-| 🛫 **Airports** | Gate allocation in high-risk windows |
-| 💼 **Insurers** | Risk-priced delay insurance products |
-
-**Bottom emphasis line**: We'll show a concrete **+340% ROI** example for the insurance use case at the end.
-
-## 🎤 Speaker Notes (40 sec)
-
-> "Why does anyone care if we can predict delays? Four kinds of stakeholders.
->
-> *Passengers* can pick the more reliable flight or buy delay insurance. *Airlines* can pre-position crews and reroute aircraft before disruptions snowball. *Airports* can pre-staff gates during forecasted bad windows. And *insurers* — this is the most concrete one — can price flight delay insurance more accurately or even arbitrage it.
->
-> We'll come back to that insurance angle at the end with actual ROI numbers — it's a clean way to put a dollar value on the model."
+*(48 words)*
 
 ---
 
-# Slide 4 — Dataset
+## 4 · Dataset · 0:30
 
-## On-Screen Content
+> "Two public datasets. BTS On-Time Performance — every U.S. domestic flight in 2024, 7 million raw rows, 6.8 million after cleaning. NOAA hourly weather at the 50 busiest airports. The tricky part is joining them — flights are minute-precise, weather is hourly. We used pandas `merge_asof` with a 2-hour tolerance. About 80% of flights at top-50 airports got a valid weather match."
 
-**Title**: 6.8M Flight Records + Hourly Weather
-
-| Source | What | Coverage |
-|---|---|---|
-| **BTS On-Time Performance** | Every U.S. domestic flight | Full year 2024, 7.08M → 6.82M after cleaning |
-| **NOAA ISD-Lite** | Hourly surface weather | 50 stations co-located with top airports, 8,760 hours each |
-
-**Integration challenge**: weather is hourly + irregular; flights are minute-precise.
-**Solution**: `merge_asof(direction="nearest", tolerance=1 hour)` — match each flight to its closest weather observation.
-
-**Visual hint**: BTS logo + NOAA logo arrows merging into a unified table
-
-## 🎤 Speaker Notes (45 sec)
-
-> "We worked with two public datasets. First is the Bureau of Transportation Statistics' On-Time Performance database — every U.S. domestic flight from 2024, including scheduled and actual times, airline, route, aircraft tail number. Seven million rows, six-point-eight after cleaning.
->
-> Second is NOAA's hourly weather observations — temperature, wind, precipitation — at the 50 busiest U.S. airports.
->
-> The technically tricky part is *joining them*. Flights are minute-precise; weather is hourly and sometimes irregular. We used pandas' `merge_asof` to match each flight to its nearest-in-time weather reading at its origin airport, with a 1-hour tolerance. About 95 percent of flights at top-50 airports got a valid weather match."
+*(67 words)*
 
 ---
 
-# Slide 5 — EDA #1: Cascading Delays 🎯
+## 5 · Data Quality · 0:25
 
-## On-Screen Content
+> "About 80% of flights are on-time, 20% delayed at least 15 minutes. Heavy class imbalance — that's the central modeling challenge. Cleaning was a 7-step pipeline: ISD-Lite sentinel decoding, dropping diverted flights, removing 600-minute outliers, deduplication. End result: 96.3% retention — 6.82 million rows, 81 columns."
 
-**Title**: One Late Flight Predicts the Next
-
-![Cascading delay chart](figs/slide_cascading_delay.png)
-
-**Big takeaway box** (right side or bottom):
-> When the **previous flight is 60–120 min late**, the **next flight has a 62% delay rate** — vs. **10% baseline** when on-time.
-
-## 🎤 Speaker Notes (60 sec — most important slide)
-
-> "This is the single most important chart of our project. On the x-axis: how late was the *previous* leg of the same aircraft? On the y-axis: how often is the *next* flight delayed.
->
-> When the prior leg was on-time or early — the green bars on the left — only about 10% of next flights are delayed. That's *below* the 20% overall average.
->
-> But look at what happens when the prior leg was late. A 30-to-60 minute delay on the previous leg pushes the next-flight delay rate up to 59%. A 60-to-120 minute delay pushes it to 62%. So the same plane being late once basically *guarantees* trouble for its next departure.
->
-> The takeaway: it's not the airline, it's not the weather, it's the *aircraft rotation*. Tracking same-tail-number history is the strongest single predictor we found — by a wide margin."
+*(53 words)*
 
 ---
 
-# Slide 6 — EDA #2: Temporal Patterns
+## 6 · Feature Engineering · 0:30
 
-## On-Screen Content
+> "Twenty-three engineered features in eight categories. Two carry the model — cascading delays and time-of-day. The most important discipline is anti-leakage: every rolling stat uses `shift(1)` before the rolling window. Today's target never feeds today's feature. Drop the shift, CV-AUC silently inflates 5 to 6 percentage points — classic leakage."
 
-**Title**: Delays Build Throughout the Day & Year
-
-![Temporal patterns chart](figs/slide_temporal_patterns.png)
-
-**Bullets**:
-- Delay rate climbs from **~10% at 5 AM** to **~28% at 8 PM** — daily cascading effect
-- **Summer worse than winter** — counterintuitive!
-- Likely cause: thunderstorm season + peak vacation traffic
-
-## 🎤 Speaker Notes (40 sec)
-
-> "Two clear temporal patterns. On the left: as the day goes on, delay rates climb steadily — from about 10% for the earliest morning flights to nearly 30% for evening departures. That's the same cascading effect we just saw, but aggregated across the system: the longer the operational day runs, the more accumulated disruption.
->
-> On the right: delay rate by month. Most people guess winter is the worst because of snow — but actually summer is significantly worse. June, July, August are the red bars. The driver is convective weather: thunderstorms are short, intense, and harder to plan around than scheduled snow events. And summer is also peak travel volume."
+*(57 words)*
 
 ---
 
-# Slide 7 — EDA #3: Weather Effect
+## 7 · Cascading Delay ⭐ · 0:50
 
-## On-Screen Content
+> "This is the most important chart of our project. X-axis: how late was the previous leg of the same aircraft. Y-axis: how often the next flight is delayed. When the prior leg was on-time or early — the green bars — only about 10% of next flights are delayed, below the 20% baseline. But when the prior leg was 30 to 60 minutes late, the next flight delay rate jumps to 59%. 60 to 120 minutes — 62%. The same plane being late once basically guarantees trouble for its next departure. The takeaway: it's not the airline, it's not even the weather — it's the aircraft rotation. The single strongest predictor we found, by a wide margin."
 
-**Title**: Bad Weather Roughly Doubles the Delay Rate
-
-![Weather effect chart](figs/slide_weather_effect.png)
-
-**Bullets**:
-- Heavy precipitation (>10 mm/h): **48% delay rate** vs 21% baseline
-- Strong wind (>12 m/s): **34% delay rate**
-- Both effects monotonic — more weather = more delay
-
-## 🎤 Speaker Notes (40 sec)
-
-> "Weather matters too. On the left, wind speed: as wind picks up, delay rate climbs from 18% in calm conditions to 34% with strong winds. On the right, precipitation: light rain barely moves the needle, but heavy rain — over 10 millimeters per hour — pushes delay rate to 48%, more than double the baseline.
->
-> Both effects are monotonic and substantial. But — and this is the punchline — weather still ranks behind cascading delays in our final model. The reason is that bad weather days affect *every* flight, so the *relative* signal is smaller than knowing one specific aircraft is having a bad day."
+*(124 words)*
 
 ---
 
-# Slide 8 — Hypothesis Tests
+## 8 · Temporal Patterns · 0:25
 
-## On-Screen Content
+> "Two clear temporal patterns. As the day progresses, delay rates climb from about 10% at 5 AM to nearly 30% at 8 PM — the same cascading effect aggregated across the system. On the right: counterintuitively, summer is worse than winter. Convective storms in June through August are short, intense, and harder to plan around than scheduled snow."
 
-**Title**: Statistically Validating EDA Patterns
-
-![Hypothesis tests summary](figs/slide_hypothesis_tests.png)
-
-**Footer**: All four tests use simulation methods covered in class — permutation, bootstrap, Monte Carlo. All four reject the null hypothesis at α = 0.05.
-
-## 🎤 Speaker Notes (50 sec)
-
-> "We backed up the EDA findings with four formal hypothesis tests, all using simulation methods.
->
-> Test 1: budget carriers like Spirit and Frontier delay 5.4 percentage points more than legacy carriers like Delta and United — permutation test, ten thousand iterations, p less than one in ten thousand.
->
-> Test 2: summer is 5.8 points *worse* than winter, validated with a bootstrap confidence interval that doesn't include zero.
->
-> Test 3: hub airports delay 1.9 points more than non-hubs — small but real.
->
-> Test 4: a chi-squared test on adverse weather versus delay using Monte Carlo for the null. The chi-squared statistic is over 15,000.
->
-> All four reject the null. The patterns we saw in EDA aren't noise."
+*(60 words)*
 
 ---
 
-# Slide 9 — Modeling Approach
+## 9 · Weather · 0:25
 
-## On-Screen Content
+> "Weather matters too. Wind: 18% in calm conditions, 34% in strong winds. Precipitation: light rain barely moves the needle, but heavy rain over 10 mm per hour pushes delay rate to 48% — more than double baseline. Both monotonic. But weather still ranks behind cascading delays — bad weather days affect every flight, so the relative signal is smaller."
 
-**Title**: Predicting Delay ≥15 min — Before Takeoff
-
-**Bullets**:
-- **Target**: `DepDel15` (binary — delayed at least 15 min)
-- **Train**: Jan–Oct 2024 (5.6M flights) · **Test**: Nov–Dec 2024 (1.1M flights)
-- **23 engineered features** across 8 categories: time, weather, congestion, cascading
-- **No leakage**: all rolling features use `shift(1)` — only past data feeds today's prediction
-- Tested multiple models: Logistic Regression → Random Forest → XGBoost / LightGBM
-
-**Visual hint**: Simple timeline graphic — blue bar Jan–Oct (train), orange bar Nov–Dec (test)
-
-## 🎤 Speaker Notes (45 sec)
-
-> "Now to the modeling. We treat this as binary classification: will the flight be delayed by at least 15 minutes?
->
-> The most important design choice is the train-test split. We *don't* use random splitting — we split *temporally*. Train on January through October, test on November and December. Random splitting would let the model peek at future information through our rolling-history features, which would inflate scores artificially.
->
-> We engineered 23 features across 8 categories — time-of-day, holidays, hub indicators, rolling delay rates, the cascading prior-flight delay, congestion, and weather. Critically, all rolling features use `shift(1)` *before* the rolling window, so today's target never leaks into today's feature.
->
-> We benchmarked a series of models — Logistic Regression as baseline, then Random Forest, then XGBoost and LightGBM."
+*(60 words)*
 
 ---
 
-# Slide 10 — Model Performance
+## 10 · Airline Reliability · 0:20
 
-## On-Screen Content
+> "Two views of airlines. Left: ranked by delay rate. Frontier, Spirit, Allegiant at the top — budget carriers. Delta, United, American at the bottom — legacy. A 5.4-point spread. Right: the actual delay-minute distribution per airline — some have heavier right tails. Tail-risk signal binary classification under-uses."
 
-**Title**: From AUC 0.50 → 0.82
-
-![Model performance chart](figs/slide_model_performance.png)
-
-**Highlight box** (small):
-> Tuned XGBoost: **AUC 0.819, F1 0.587** at threshold 0.566.
-
-## 🎤 Speaker Notes (60 sec)
-
-> "Here are the headline results. Left chart: AUC by model.
->
-> The naive baseline — always predict on-time — gets AUC of exactly 0.5, the same as flipping a coin. That model is useless even though it's right 80% of the time on overall accuracy, because it never *catches* a delay.
->
-> Logistic regression jumps us to 0.76. Random forest to 0.80. XGBoost and LightGBM both around 0.82. After hyperparameter tuning with randomized search across 30 configurations and 3-fold cross-validation, our tuned XGBoost reaches AUC 0.819. After threshold tuning on the precision-recall curve, F1 climbs to 0.587.
->
-> The right chart breaks down precision, recall, and F1. Notice that simpler models have lower precision *and* lower recall — they're worse on both axes. The tuned XGBoost trades a bit of recall for substantially better precision, which is what we want for an actionable predictor."
+*(50 words)*
 
 ---
 
-# Slide 11 — Feature Importance
+## 11 · Hypothesis Tests · 0:35
 
-## On-Screen Content
+> "We backed up the EDA with four formal tests, all simulation-based. Test 1: budget vs legacy — permutation, +5.4 pp, p less than one in ten thousand. Test 2: summer vs winter — bootstrap CI, −5.8 pp, doesn't include zero. Test 3: hub vs non-hub — +1.9 pp, smaller but significant. Test 4: weather independence — Monte Carlo chi-squared. All four reject the null."
 
-**Title**: What the Model Actually Uses
-
-![Feature importance chart](figs/slide_feature_importance.png)
-
-**Bullets**:
-- `prev_flight_arr_delay` (cascading) consistently in top 2
-- Time-of-day & airline identity also prominent
-- Weather features rank mid-tier — confirms the EDA story
-
-## 🎤 Speaker Notes (40 sec)
-
-> "When we look at what the tuned model actually weighs, the EDA story is confirmed. The cascading-delay feature — that previous-leg arrival delay we showed earlier — is at the top, alongside time-of-day features.
->
-> Weather features — wind, precipitation, temperature — show up in the middle of the chart. Important but secondary. And airline identity appears as a series of one-hot dummies, with budget carriers like Southwest, American, and United all appearing in the top 15.
->
-> So the model picked the same patterns we found in EDA, which is comforting — and it gives us a clean story to tell stakeholders about *why* a particular flight was flagged."
+*(74 words)*
 
 ---
 
-# Slide 12 — Implications: Insurance ROI 💰
+## 12 · Null Distributions · 0:20
 
-## On-Screen Content
+> "The visual proof. Each gray histogram is the simulated null under no effect. The red line is what we observed. In every panel, the red line is far outside the gray support — that's why all four p-values are essentially zero. Not marginal results."
 
-**Title**: Real-World Value: Selective Flight Delay Insurance
-
-**Strategy comparison table**:
-
-| Strategy | Buy insurance for... | Realized delay rate | ROI |
-|---|---|---|---|
-| Naive | Every flight | 17.9% (base rate) | **+19%** |
-| **Our model** | Only flights flagged "high risk" | **65.9%** (model's precision) | **+340%** |
-
-**Big number** (right side):
-> 18× ROI multiplier from one prediction model
-
-**Bullets**:
-- Insurers price by base rate (~18%) → premium ≈ 18% × payout
-- Our model selects flights with 66% actual delay rate
-- Information asymmetry = financial edge
-
-## 🎤 Speaker Notes (60 sec)
-
-> "Let me put a concrete dollar value on this with the insurance use case.
->
-> Flight delay insurance is priced by the actuarial average — about 18 percent of all flights are delayed, so a fair premium is roughly 18 percent of the payout. If you buy insurance for *every* flight, you get a small positive return — about 19 percent ROI in our calculation, since you're slightly under-priced.
->
-> But our model's *precision* is 66 percent — when we say 'this flight is at risk,' we're right two-thirds of the time, much higher than the 18 percent base rate that insurers price against.
->
-> So if you buy insurance *only* on flights our model flags, your realized payout rate jumps to 66 percent. The ROI in that scenario is 340 percent — about 18 times better than the no-information strategy.
->
-> Now, real insurers aren't going to let this arbitrage stand forever, but the math illustrates the broader point: information has value, and a model with AUC 0.82 captures meaningful information."
+*(48 words)*
 
 ---
 
-# Slide 13 — Challenges & Future Work
+## 13 · Modeling Approach · 0:30
 
-## On-Screen Content
+> "Now modeling. Binary classification — delayed at least 15 minutes. Most important design choice: temporal split, not random. Train January–October on 5.6 million flights, test November–December on 1.13 million. Random splitting would let rolling features peek at the future. 23 features expanded to 74 columns after one-hot. We benchmarked logistic regression through LightGBM, with randomized hyperparameter search."
 
-**Title**: What We Learned + What's Next
-
-**Two-column layout:**
-
-**Challenges (left)**:
-- 6.8M rows broke standard sklearn solvers — moved to SGD + GBDT
-- Class imbalance (80:20): SMOTE vs. weights — weights won
-- Weather temporal alignment: solved with `merge_asof`
-- Validated 500k subsample matches 5.6M full data (ΔAUC < 0.002)
-
-**Future Work (right)**:
-- **Cross-year validation**: train 2024, test 2025
-- **Upstream weather forecasts** (HRRR/GFS): predict before the storm hits
-- **Per-airport models**: hubs differ from regional airports
-- **Real-time streaming**: update predictions as departure nears
-
-## 🎤 Speaker Notes (40 sec)
-
-> "A few honest reflections. The dataset size broke standard scikit-learn — Logistic Regression timed out at 30 minutes — so we switched to stochastic gradient descent and gradient-boosted trees. We tested SMOTE versus class weights for imbalance; class weights won on recall. And we validated that our 500k subsample for tuning matches full-data performance to within 0.002 AUC.
->
-> For future work: the biggest gap is cross-year validation — train on all of 2024 and test on 2025 — that's the gold standard we didn't have time for. Beyond that, integrating *forecast* weather instead of observed, building per-airport models for the major hubs, and a real-time pipeline that updates predictions hour by hour as departure approaches.
->
-> That's our project. Thank you."
+*(63 words)*
 
 ---
 
-# Slide 14 — Q&A
+## 14 · ROC Ladder · 0:25
 
-## On-Screen Content
+> "The model ladder. Naive baseline at 0.5 AUC — useless. SGD logistic gives the first real signal at 0.757. Random forest jumps to 0.806. XGBoost and LightGBM cluster at 0.81 to 0.82. Notice the four GBDT variants are within 0.005 of each other — we hit a plateau where additional complexity gives diminishing returns."
 
-**Title**: Thank You — Questions?
-
-- Code & notebooks: `github.com/trumpool/CIS-5450`
-- Team: Xiaoyang Wan · Dong Dong · Yihong Yu · Yanchen Zhou
-
-## 🎤 Speaker Notes (10 sec)
-
-> "Happy to take any questions."
+*(58 words)*
 
 ---
 
-## 🎯 Anticipated Q&A — Have These Ready
+## 15 · SMOTE vs Weighted · 0:20
 
-**Q: Why temporal split instead of random?**
-> Random splitting leaks future information through rolling features. A November flight's `airline_delay_rate_7d` would partially overlap with December training data. Temporal split simulates real forecasting.
+> "Two ways to handle 80:20 imbalance — re-weight the loss with `scale_pos_weight`, or oversample with SMOTE. SMOTE pushed precision up but recall collapsed. Class weighting catches more delays at acceptable precision — F1 4 points higher. SMOTE's synthetic minority points can't capture operational context."
 
-**Q: Isn't `prev_flight_arr_delay` data leakage?**
-> No — it's the *previous* leg of the same aircraft. By the time the current flight is at the gate, the previous leg has already landed. It's known information.
-
-**Q: Why did SMOTE underperform?**
-> SMOTE creates synthetic minority samples in feature space, which on tabular data with many categorical features can produce unrealistic interpolations. Class weights re-weight existing data, which is a softer intervention. On our data, recall dropped sharply with SMOTE — from 0.55 to 0.42 — while gaining precision. Net F1 was lower.
-
-**Q: Is AUC 0.82 enough for production?**
-> Depends on the use case. For a passenger app saying "your flight is at elevated risk," yes — better than nothing. For airline crew scheduling that costs millions to override, you'd want calibrated probabilities and probably ensemble with operational data we don't have access to.
-
-**Q: Why is regression so much weaker than classification?**
-> Because exact delay duration is dominated by extreme outliers — a 4-hour delay is qualitatively different from a 30-minute one but RMSE treats them on the same scale. Binary "is it delayed" is more tractable and more actionable.
-
-**Q: How would you extend this to other modes of transport?**
-> The cascading-delay insight likely generalizes — train rotation in rail networks, vessel rotation in shipping. The weather-integration pattern is reusable. The biggest barrier would be data availability; not every domain has BTS-style public data.
+*(48 words)*
 
 ---
 
-## 📋 Recording Checklist
+## 16 · Hyperparameter Tuning · 0:20
 
-- [ ] All speakers' faces visible throughout (rubric requirement)
-- [ ] Use real voices, no TTS (rubric requirement)
-- [ ] No code on any slide (rubric requirement)
-- [ ] 8–10 minutes total runtime (under 8 or over 10 = -5 points)
-- [ ] Export final slide deck as PDF for submission
-- [ ] Test all charts render at presentation resolution (already 200 DPI, 16:9)
-- [ ] Practice cadence — aim for 9:30 to leave buffer
+> "RandomizedSearchCV — 30 random draws from a 7-dimensional space, scored by ROC-AUC under 3-fold CV. Best config: 400 trees, depth 6, learning rate 0.05. The interesting result is robustness — top 10 configurations sit within 0.002 AUC of each other. We're on a plateau, not a sharp peak."
+
+*(55 words)*
 
 ---
 
-## 🌟 Pacing Tips
+## 17 · Threshold Tuning · 0:20
 
-- **Slide 5 (Cascading)** and **Slide 12 (Insurance ROI)** are the wow moments. Slow down on these.
-- **Slides 8 (hypothesis tests)** is dense but quick — don't dwell.
-- **Slides 13 (challenges/future)** is your last shot to look thoughtful — don't rush off-screen.
-- If you're running long, the easiest cuts are: shorten slide 9 modeling-approach detail, and shorten the insurance ROI walkthrough on slide 12.
+> "Final lever before evaluation: the classification threshold. Default is 0.5. Sweeping the precision-recall curve and picking the F1-maximizer gives 0.573 — slightly above 0.5. F1 climbs from 0.580 to 0.586."
+
+*(36 words)*
+
+---
+
+## 18 · Model Performance ⭐ · 0:50
+
+> "Final results on the 1.13-million-row November–December test set. Tuned XGBoost: AUC 0.817, F1 0.586, threshold 0.573. ROC overlay on the left — green tuned XGBoost on top, the operating-point dot catching about half of all actual delays at 66% precision. The confusion matrix on the right: of 202,000 actual delays, the model catches 52.5%. Of 160,000 alerts, 66.3% are real. Class weights beat SMOTE by 4 F1 points at lower training cost."
+
+*(91 words)*
+
+---
+
+## 19 · Feature Importance · 0:25
+
+> "What the model actually weighs. Cascading-delay — previous-leg arrival delay — at the top by a wide margin, roughly 3× the second-ranked feature on its own. Time-of-day second tier. Weather mid-tier — important but secondary. Airline identity as one-hot dummies in the top 15. The model rediscovered the same hierarchy we saw in EDA."
+
+*(60 words)*
+
+---
+
+## 20 · Regression Detour · 0:25
+
+> "Quick detour — we also tried predicting actual delay minutes. Four models. LightGBM wins — RMSE 32, MAE 14, R-squared 0.27. But typical error is ±14 minutes — same order as the 15-minute threshold itself. Plus residuals are heteroskedastic. So classification stayed our primary deliverable."
+
+*(50 words)*
+
+---
+
+## 21 · Insurance ROI ⭐ · 0:50
+
+> "Concrete dollar value. Delay insurance is priced at the actuarial average — about 18% — so a fair premium is 18% of payout. Buy on every flight: you essentially break even. But our model's precision is 66% — when we flag a flight, it's actually delayed two-thirds of the time, far above the 18% base rate that fair pricing assumes. So if you only insure flagged flights, your realized claim rate is 65.9% against an 18% premium — a 266% ROI, or 3.7× the expected return per dollar of premium. Illustrative, but the broader point: AUC 0.82 is information with real dollar value."
+
+*(108 words)*
+
+---
+
+## 22 · Challenges & Future · 0:30
+
+> "Honest reflections. Memory engineering with parquet plus typed dtypes cut working set 60%. SGD-Logit replaced sklearn saga which timed out at 30 minutes. Class weights beat SMOTE. 500k subsample matches full data within 0.002 AUC. Future: cross-year 2024-to-2025 validation, forecast weather, graph aircraft rotation, per-airport mixture-of-experts, real-time streaming."
+
+*(56 words)*
+
+---
+
+## 23 · Thanks · 0:10
+
+> "That's our project. Thanks — happy to take questions."
+
+*(10 words)*
+
+---
+
+## 📝 Notes for Speakers
+
+- **Pause for emphasis** at ⭐ slides (7, 18, 21) — these are the visual hooks; let the chart breathe before speaking.
+- **Numbers to nail**: $30B (slide 2) · 6.8M rows (slide 4) · 80/20 imbalance (slide 5) · 23 features → 74 cols (slide 6) · 62% / 10% cascading (slide 7) · AUC 0.817 / F1 0.586 (slide 18) · 3.7× ROI / 266% / 65.9% (slide 21).
+- **Don't read the bullets**. Slides are reference; the script is your voice over them.
+- **Transition cues**: §03 Statistical Validation (slides 11–12) closes EDA; §04 Modeling (slides 13–19) is the core; §05 Implications (slide 21) is the payoff.
+
+---
+
+## Adjustments Log
+*(Track changes here when revising)*
+
+- 2026-04-27 — v1 draft, ~9:15 total. Replaces prior 14-slide / 14-min script.

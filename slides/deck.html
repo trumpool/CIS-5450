@@ -576,12 +576,12 @@
      ============================================================= */
   .roi { padding: 0; }
   .roi .layout {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 0;
     padding: 0 var(--slide-margin-x); margin-top: 18px;
-    position: relative;
+    align-items: stretch;
   }
   .roi .pane {
-    padding: 28px 28px 26px; min-height: 380px;
+    padding: 24px 26px 22px; min-height: 340px;
     display: flex; flex-direction: column; justify-content: space-between;
   }
   .roi .pane.naive { background: var(--paper-2); border: 1px solid var(--hairline); }
@@ -623,14 +623,43 @@
   .roi .pane.naive .roi-num .v { color: var(--ink-2); }
 
   .roi .multiplier {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-10deg);
-    z-index: 5; pointer-events: none;
-    font-family: var(--font-display); font-size: 200pt; font-weight: 300;
-    line-height: 0.85; color: var(--brand-primary); letter-spacing: -0.04em;
-    font-variant-numeric: lining-nums;
-    text-shadow: 0 4px 24px rgba(251, 250, 246, 0.95);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 36px;
+    background: var(--paper);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    min-width: 220px;
+    position: relative;
   }
-  .roi .multiplier small { font-family: var(--font-display); font-style: italic; font-size: 60pt; color: var(--brand-deep); }
+  .roi .multiplier::before {
+    content: ""; position: absolute; left: 50%; top: 16px; bottom: 16px;
+    width: 1px; background: var(--brand-accent); opacity: 0.45; transform: translateX(-50%);
+    z-index: 0;
+  }
+  .roi .multiplier > * { position: relative; z-index: 1; background: var(--paper); padding: 0 8px; }
+  .roi .multiplier .lbl-top {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+    margin-bottom: 14px; text-align: center; line-height: 1.3;
+  }
+  .roi .multiplier .num {
+    font-family: var(--font-display); font-size: 132px; font-weight: 300;
+    color: var(--brand-primary); line-height: 0.9; letter-spacing: -0.04em;
+    font-variant-numeric: lining-nums;
+  }
+  .roi .multiplier .num small {
+    font-family: var(--font-display); font-style: italic; font-size: 56px;
+    color: var(--brand-deep); font-weight: 400; padding: 0;
+  }
+  .roi .multiplier .arrow {
+    margin-top: 8px; color: var(--brand-primary);
+    font-family: var(--font-display); font-size: 32px; line-height: 1;
+  }
+  .roi .multiplier .lbl-bot {
+    font-family: var(--font-display); font-style: italic; font-size: 14px;
+    color: var(--ink-2); margin-top: 8px; text-align: center;
+    max-width: 180px; line-height: 1.4;
+  }
 
   .roi .info-asym {
     margin: 18px var(--slide-margin-x) 0; padding-top: 12px; border-top: 1px solid var(--hairline);
@@ -700,12 +729,12 @@
      05 · Data Quality + Class Imbalance
      ============================================================= */
   .quality .layout {
-    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px;
+    display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr); gap: 28px;
     padding: 0 var(--slide-margin-x); margin-top: 16px;
   }
   .quality .layout > * { min-width: 0; }
-  .quality .figbox-fr { max-height: 360px; overflow: hidden; }
-  .quality .figbox-fr img { max-height: 300px; }
+  .quality .figbox-fr { max-height: 440px; overflow: hidden; }
+  .quality .figbox-fr img { max-height: 400px; width: 100%; object-fit: contain; }
   .quality .figbox-fr .figcap-inline { max-width: 100%; }
   .quality .panel {
     display: flex; flex-direction: column;
@@ -732,49 +761,137 @@
   .quality .takeaway b { color: var(--brand-primary); font-weight: 500; }
 
   /* =============================================================
-     06 · Feature Engineering matrix
+     06 · Feature Engineering matrix — visual hierarchy
      ============================================================= */
   .feateng .grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-    padding: 0 var(--slide-margin-x); margin-top: 14px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    padding: 0 var(--slide-margin-x); margin-top: 18px;
   }
   .feateng .cat {
+    position: relative;
     background: var(--paper-2); border: 1px solid var(--hairline);
-    border-top: 3px solid var(--brand-deep);
-    padding: 8px 12px;
+    border-top: 3px solid var(--ink-3);
+    padding: 12px 14px 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-height: 110px;
   }
+  /* tier system — visual hierarchy by feature importance */
+  .feateng .cat.t-dom { border-top-color: var(--brand-primary); background: #F5DDD3; }
+  .feateng .cat.t-mid { border-top-color: var(--brand-deep); }
+  .feateng .cat.t-low { border-top-color: var(--brand-accent); background: var(--paper); }
+  .feateng .cat.t-low .ttl, .feateng .cat.t-low .summary { opacity: 0.78; }
+
+  .feateng .cat .badge {
+    position: absolute; top: 8px; right: 12px;
+    font-family: var(--font-body); font-size: 8px; letter-spacing: 0.2em;
+    font-weight: 700; text-transform: uppercase;
+    padding: 2px 6px; color: var(--ink-3); border: 1px solid currentColor;
+    background: var(--paper);
+  }
+  .feateng .cat.t-dom .badge { color: var(--brand-primary); }
+  .feateng .cat.t-mid .badge { color: var(--brand-deep); }
+
+  .feateng .cat .icon {
+    width: 22px; height: 22px; color: var(--brand-deep);
+    margin-bottom: 2px; flex-shrink: 0;
+  }
+  .feateng .cat.t-dom .icon { color: var(--brand-primary); }
+  .feateng .cat.t-low .icon { color: var(--ink-3); }
+
   .feateng .cat .ttl {
-    font-family: var(--font-body); font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--brand-deep); font-weight: 600; margin-bottom: 2px;
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--ink); font-weight: 700;
   }
   .feateng .cat .cnt {
-    font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--brand-primary); line-height: 1;
+    font-family: var(--font-display); font-size: 34px; font-weight: 400;
+    color: var(--brand-deep); line-height: 1; font-variant-numeric: lining-nums;
   }
+  .feateng .cat.t-dom .cnt { color: var(--brand-primary); }
   .feateng .cat .cnt small {
-    font-family: var(--font-body); font-size: 9px; color: var(--ink-3); letter-spacing: 0.04em; margin-left: 4px; font-weight: 600;
+    font-family: var(--font-body); font-size: 8.5px; color: var(--ink-3);
+    letter-spacing: 0.1em; margin-left: 6px; font-weight: 600; text-transform: uppercase;
   }
-  .feateng .cat ul { list-style: none; padding: 0; margin: 5px 0 0; }
-  .feateng .cat li {
-    padding: 2px 0; font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-2); line-height: 1.35;
+  .feateng .cat .summary {
+    margin-top: 4px; font-family: var(--font-body); font-size: 11px;
+    color: var(--ink-2); line-height: 1.4;
   }
+  .feateng .cat.t-dom .summary { color: var(--ink); font-weight: 500; }
+  .feateng .cat .summary code {
+    font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep);
+    background: var(--paper); padding: 1px 4px; border: 1px solid var(--hairline);
+  }
+
+  /* hero pipeline — bigger numbers, gold strip */
   .feateng .pipeline {
-    margin: 10px var(--slide-margin-x) 0; padding: 8px 22px;
-    background: var(--brand-accent); display: flex; align-items: center; justify-content: center; gap: 22px;
+    margin: 16px var(--slide-margin-x) 0;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; align-items: center;
+    padding: 14px 28px;
+    background: var(--brand-accent);
   }
-  .feateng .pipeline .step {
-    font-family: var(--font-display); font-size: 15px; color: var(--brand-deep); font-weight: 500;
+  .feateng .pipeline .step { display: flex; align-items: baseline; gap: 14px; justify-content: center; }
+  .feateng .pipeline .step .num {
+    font-family: var(--font-display); font-size: 56px; font-weight: 300;
+    color: var(--brand-primary); line-height: 1; font-variant-numeric: lining-nums;
+    letter-spacing: -0.02em;
   }
-  .feateng .pipeline .step b { color: var(--brand-primary); font-style: italic; padding: 0 4px; font-size: 18px; }
+  .feateng .pipeline .step .lbl {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--brand-deep); font-weight: 700; line-height: 1.3;
+  }
   .feateng .pipeline .arr {
-    font-family: var(--font-mono); color: var(--ink); font-size: 15px;
+    font-family: var(--font-display); font-size: 36px; color: var(--ink);
+    font-style: italic; text-align: center; line-height: 1;
   }
+  .feateng .pipeline .arr-sub {
+    display: block; font-family: var(--font-body); font-size: 9px;
+    letter-spacing: 0.18em; color: var(--ink-2); font-weight: 600; margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* anti-leakage — code visual + delta callout */
   .feateng .anti {
-    margin: 8px var(--slide-margin-x) 0;
-    font-family: var(--font-body); font-size: 10.5px; color: var(--ink-3); text-align: center;
-    padding-top: 8px; border-top: 1px solid var(--hairline); line-height: 1.45;
+    margin: 14px var(--slide-margin-x) 0;
+    display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center;
+    padding: 12px 18px;
+    border: 1px dashed var(--brand-primary);
+    background: #FBF2EE;
   }
-  .feateng .anti b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9.5px; }
-  .feateng .anti code { font-family: var(--font-mono); font-size: 10px; color: var(--brand-primary); background: var(--paper-2); padding: 1px 4px; border: 1px solid var(--hairline); }
+  .feateng .anti .label-row {
+    font-family: var(--font-body); font-size: 9.5px; letter-spacing: 0.22em;
+    color: var(--brand-primary); font-weight: 700; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .feateng .anti code.line {
+    display: inline-block; font-family: var(--font-mono); font-size: 13px;
+    color: var(--brand-deep); background: var(--paper); padding: 5px 10px;
+    border-left: 2px solid var(--brand-primary);
+  }
+  .feateng .anti code.line b {
+    color: var(--brand-primary); font-style: normal; font-weight: 700;
+    background: #FAEAE5; padding: 0 3px;
+  }
+  .feateng .anti .desc {
+    font-family: var(--font-body); font-size: 11px; color: var(--ink-2);
+    margin-top: 6px; line-height: 1.4;
+  }
+  .feateng .anti .desc code {
+    font-family: var(--font-mono); font-size: 10px; color: var(--brand-primary);
+    background: var(--paper-2); padding: 0 3px;
+  }
+  .feateng .anti .delta {
+    font-family: var(--font-display); font-size: 46px; font-weight: 300;
+    color: var(--brand-primary); line-height: 1; text-align: right;
+    letter-spacing: -0.02em;
+  }
+  .feateng .anti .delta sub.pp {
+    font-size: 16px; vertical-align: 0.4em; color: var(--brand-primary);
+    font-style: italic; padding-left: 2px; font-weight: 400;
+  }
+  .feateng .anti .delta-lbl {
+    font-family: var(--font-body); font-size: 9px; letter-spacing: 0.18em;
+    color: var(--ink-3); text-transform: uppercase; font-weight: 600;
+    margin-top: 4px; text-align: right;
+  }
 
   /* =============================================================
      10 · Airline reliability
@@ -797,20 +914,34 @@
   /* =============================================================
      12 · Null distributions visual proof
      ============================================================= */
-  .nullsim .body { padding: 0 var(--slide-margin-x); margin-top: 8px; }
-  .nullsim .figbox-fr { max-height: 320px; overflow: hidden; padding: 6px 12px; }
-  .nullsim .figbox-fr img { max-height: 280px; }
+  .nullsim .h1 { font-size: 42px; }   /* tighter — fits one line */
+  .nullsim .body { padding: 0 var(--slide-margin-x); margin-top: 14px; }
+  .nullsim .figbox-fr {
+    max-height: 540px; overflow: hidden; padding: 10px 16px;
+    background: var(--paper-2); border: 1px solid var(--hairline);
+  }
+  .nullsim .figbox-fr img {
+    max-height: 500px; width: 100%; object-fit: contain; display: block; margin: 0 auto;
+  }
   .nullsim .figbox-fr .figcap-inline { max-width: 100%; }
   .nullsim .legend {
-    margin: 8px var(--slide-margin-x) 0;
-    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;
-    font-family: var(--font-body); font-size: 10px; color: var(--ink-2);
+    margin: 16px var(--slide-margin-x) 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px;
+    font-family: var(--font-body);
   }
-  .nullsim .legend .item { border-left: 2px solid var(--brand-deep); padding-left: 8px; }
+  .nullsim .legend .item {
+    border-left: 3px solid var(--brand-deep);
+    padding: 6px 12px;
+    background: var(--paper-2);
+  }
   .nullsim .legend .item .ttl {
-    font-family: var(--font-display); font-style: italic; font-size: 12px; color: var(--brand-primary); font-weight: 500;
+    font-family: var(--font-display); font-style: italic; font-size: 18px;
+    color: var(--brand-primary); font-weight: 500; line-height: 1.2;
   }
-  .nullsim .legend .item .desc { font-size: 9.5px; color: var(--ink-3); margin-top: 1px; line-height: 1.3; }
+  .nullsim .legend .item .desc {
+    font-family: var(--font-body); font-size: 12px; color: var(--ink-2);
+    margin-top: 4px; line-height: 1.45;
+  }
 
   /* =============================================================
      14 / 15 / 16 / 17 — Modeling deep-dive layouts
@@ -1175,87 +1306,124 @@
     <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
     <div class="title-block">
       <div class="eyebrow">§ 02 · Feature Engineering</div>
-      <h1 class="h1">23 engineered features in <em>8 categories.</em></h1>
+      <h1 class="h1">23 features · 8 categories — <em>cascading &amp; time carry the model.</em></h1>
       <hr class="gold-rule">
     </div>
     <div class="grid">
-      <div class="cat">
-        <div class="ttl">Time</div>
-        <div class="cnt">5<small>features</small></div>
-        <ul>
-          <li>dep_hour</li>
-          <li>day_of_week</li>
-          <li>month</li>
-          <li>time_block</li>
-          <li>is_holiday ±1d</li>
-        </ul>
-      </div>
-      <div class="cat">
+      <!-- Row 1: dominant + important -->
+      <div class="cat t-dom">
+        <span class="badge">★ Dominant</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="13" width="11" height="6" rx="3"/>
+          <rect x="18" y="13" width="11" height="6" rx="3"/>
+          <line x1="14" y1="16" x2="18" y2="16"/>
+        </svg>
         <div class="ttl">Cascading</div>
         <div class="cnt">2<small>features</small></div>
-        <ul>
-          <li>prev_flight_arr_delay</li>
-          <li>tail_leg_today</li>
-        </ul>
+        <p class="summary"><code>prev_flight_arr_delay</code> — same aircraft's prior leg.</p>
       </div>
-      <div class="cat">
+      <div class="cat t-dom">
+        <span class="badge">★ Dominant</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="16" cy="16" r="11"/>
+          <line x1="16" y1="9" x2="16" y2="16"/>
+          <line x1="16" y1="16" x2="22" y2="19"/>
+        </svg>
+        <div class="ttl">Time</div>
+        <div class="cnt">5<small>features</small></div>
+        <p class="summary">Hour · day-of-week · month · block · holiday ±1d.</p>
+      </div>
+      <div class="cat t-mid">
+        <span class="badge">Important</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 16 a11 11 0 1 0 11 -11"/>
+          <polyline points="6,5 5,16 16,15"/>
+        </svg>
         <div class="ttl">Rolling history</div>
         <div class="cnt">3<small>features</small></div>
-        <ul>
-          <li>airline_delay_rate_7d</li>
-          <li>route_delay_rate_7d</li>
-          <li>origin_delay_rate_3h</li>
-        </ul>
+        <p class="summary">Airline · route · origin 7-day delay rate.</p>
       </div>
-      <div class="cat">
-        <div class="ttl">Congestion</div>
-        <div class="cnt">2<small>features</small></div>
-        <ul>
-          <li>origin_hourly_flights</li>
-          <li>is_origin_hub · 20 hubs</li>
-        </ul>
-      </div>
-      <div class="cat">
+      <div class="cat t-mid">
+        <span class="badge">Important</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 19 a4 4 0 0 1 0 -8 a6 6 0 0 1 12 0 a4 4 0 0 1 4 8 z"/>
+          <line x1="11" y1="23" x2="11" y2="27"/>
+          <line x1="16" y1="22" x2="16" y2="28"/>
+          <line x1="21" y1="23" x2="21" y2="27"/>
+        </svg>
         <div class="ttl">Weather</div>
         <div class="cnt">7<small>features</small></div>
-        <ul>
-          <li>worst_precip · worst_wind</li>
-          <li>origin/dest temp · dewpoint</li>
-          <li>weather_severity</li>
-          <li>fog_risk · freezing_rain</li>
-        </ul>
+        <p class="summary">Wind · precip · severity · fog · freezing rain.</p>
       </div>
-      <div class="cat">
+      <!-- Row 2: important + supporting -->
+      <div class="cat t-mid">
+        <span class="badge">Important</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 18 L10 14 L17 18 L26 11 L31 14"/>
+          <circle cx="13.5" cy="16" r="1.6" fill="currentColor"/>
+        </svg>
+        <div class="ttl">Carrier</div>
+        <div class="cnt">1<small>+ 21 one-hot</small></div>
+        <p class="summary"><code>Reporting_Airline</code> — 21 carrier codes one-hot.</p>
+      </div>
+      <div class="cat t-low">
+        <span class="badge">Supporting</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="9" x2="20" y2="9"/>
+          <line x1="4" y1="15" x2="26" y2="15"/>
+          <line x1="4" y1="21" x2="14" y2="21"/>
+          <line x1="4" y1="27" x2="22" y2="27"/>
+        </svg>
+        <div class="ttl">Congestion</div>
+        <div class="cnt">2<small>features</small></div>
+        <p class="summary">Hourly flight volume + 20-hub indicator.</p>
+      </div>
+      <div class="cat t-low">
+        <span class="badge">Supporting</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="22" r="2"/>
+          <circle cx="26" cy="10" r="2"/>
+          <path d="M8 22 Q16 8 24 10" stroke-dasharray="2 3"/>
+        </svg>
         <div class="ttl">Route</div>
         <div class="cnt">2<small>features</small></div>
-        <ul>
-          <li>distance_bin (5 buckets)</li>
-          <li>origin → dest pair freq</li>
-        </ul>
+        <p class="summary">Distance bin (5) + O–D pair frequency.</p>
       </div>
-      <div class="cat">
-        <div class="ttl">Carrier</div>
-        <div class="cnt">1<small>+ one-hot</small></div>
-        <ul>
-          <li>Reporting_Airline (21 codes)</li>
-        </ul>
-      </div>
-      <div class="cat">
+      <div class="cat t-low">
+        <span class="badge">Supporting</span>
+        <svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="7" width="22" height="20"/>
+          <line x1="5" y1="13" x2="27" y2="13"/>
+          <line x1="11" y1="4" x2="11" y2="9"/>
+          <line x1="21" y1="4" x2="21" y2="9"/>
+        </svg>
         <div class="ttl">Schedule</div>
         <div class="cnt">1<small>+ derived</small></div>
-        <ul>
-          <li>CRSElapsedTime</li>
-        </ul>
+        <p class="summary"><code>CRSElapsedTime</code> — scheduled block time.</p>
       </div>
     </div>
     <div class="pipeline">
-      <span class="step"><b>23</b>engineered features</span>
-      <span class="arr">→</span>
-      <span class="step">one-hot expand</span>
-      <span class="arr">→</span>
-      <span class="step"><b>74</b>columns into model</span>
+      <span class="step">
+        <span class="num">23</span>
+        <span class="lbl">engineered<br>features</span>
+      </span>
+      <span class="arr">→<span class="arr-sub">one-hot expand</span></span>
+      <span class="step">
+        <span class="num">74</span>
+        <span class="lbl">columns into<br>the model</span>
+      </span>
     </div>
-    <p class="anti"><b>Anti-leakage discipline.</b> Every rolling stat uses <code>shift(1)</code> before <code>rolling()</code> — today's target never feeds today's feature. Removing the <code>shift</code> inflates CV-AUC by 5–6 pp on the same data.</p>
+    <div class="anti">
+      <div>
+        <div class="label-row">⚠ Anti-leakage discipline</div>
+        <code class="line">df.groupby(...)<b>.shift(1)</b>.rolling(7).mean()</code>
+        <div class="desc">Today's target never feeds today's feature. Drop <code>shift(1)</code> and CV-AUC silently inflates.</div>
+      </div>
+      <div>
+        <div class="delta">+5–6<sub class="pp">pp</sub></div>
+        <div class="delta-lbl">leakage if dropped</div>
+      </div>
+    </div>
     <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">06<em>&nbsp;/&nbsp;23</em></span></footer>
     <aside class="notes"><div class="label">Slide 06 · Feature Engineering · 0:40</div><p>"23 engineered features grouped into 8 categories — time, cascading, rolling history, congestion, weather, route, carrier, schedule. After one-hot encoding the 21 airline codes plus distance bins, the model receives 74 columns total."</p><p>"The single most important discipline is anti-leakage. Every rolling statistic uses shift-of-1 before the rolling window, so the model never sees today's target reflected back into today's feature. We tested removing the shift — it inflates CV-AUC by 5 to 6 percentage points on the same data, classic leakage signature."</p></aside>
   </section>
@@ -1726,7 +1894,7 @@
     <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
     <div class="title-block">
       <div class="eyebrow">§ 03 · Statistical Validation · Visual</div>
-      <h1 class="h1">Where the observed effects fall — <em>far outside the null.</em></h1>
+      <h1 class="h1">Observed effects land <em>far outside the null.</em></h1>
       <hr class="gold-rule">
     </div>
     <div class="body">
@@ -1734,24 +1902,6 @@
         <span class="figcap-inline">Figure · hypothesis_testing notebook · 4 simulated null distributions · observed in red</span>
         <img src="figs/fig_hypo_05_cell022.png" alt="4 hypothesis test null distributions">
       </figure>
-    </div>
-    <div class="legend">
-      <div class="item">
-        <div class="ttl">T1 · Carrier</div>
-        <div class="desc">Permutation B=10k · obs +5.4 pp</div>
-      </div>
-      <div class="item">
-        <div class="ttl">T2 · Season</div>
-        <div class="desc">Bootstrap CI · obs −5.8 pp · CI excludes 0</div>
-      </div>
-      <div class="item">
-        <div class="ttl">T3 · Hub</div>
-        <div class="desc">Permutation B=10k · obs +1.9 pp</div>
-      </div>
-      <div class="item">
-        <div class="ttl">T4 · Weather</div>
-        <div class="desc">Monte-Carlo χ<sup class="m">2</sup> · obs ≫ simulated null</div>
-      </div>
     </div>
     <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">12<em>&nbsp;/&nbsp;23</em></span></footer>
     <aside class="notes"><div class="label">Slide 12 · Null Distributions · 0:30</div><p>"The visual proof of what the previous slide claimed. Each gray histogram is the simulated null distribution — what we'd expect by chance under no effect. The red line is the observed value from real data."</p><p>"Notice that in every panel, the red line is far outside the gray support — there's no overlap. That's why all four p-values are less than 1 in 10,000. These aren't marginal results."</p></aside>
@@ -2314,6 +2464,12 @@
         </div>
         <div class="roi-num"><span class="l">Return</span><span class="v">break-even</span></div>
       </div>
+      <div class="multiplier">
+        <div class="lbl-top">ROI<br>multiplier</div>
+        <div class="num">3.7<small>×</small></div>
+        <div class="arrow">↗</div>
+        <div class="lbl-bot">return per $1 premium</div>
+      </div>
       <div class="pane ours">
         <div>
           <div class="tag">Strategy · Our Model</div>
@@ -2324,7 +2480,6 @@
         </div>
         <div class="roi-num"><span class="l">ROI</span><span class="v">+266%</span></div>
       </div>
-      <div class="multiplier">3.7<small>×</small></div>
     </div>
     <div class="info-asym">
       <div>Insurers price by <b>base rate</b> (~18%) — premium ≈ 18% × payout.</div>
