@@ -1,0 +1,225 @@
+/* =========================================================================
+   EDITORIAL IVY — Colors & Type
+   Academic Presentation System
+   -------------------------------------------------------------------------
+   All brand-related values live in :root variables.
+   Swap any school preset block (see below) into :root to re-skin instantly.
+   ========================================================================= */
+
+:root {
+  /* ---------- BRAND COLORS — DEFAULT: PENN ---------- */
+  --brand-primary: #990000;   /* Penn Red — H1, accents, highlights */
+  --brand-deep:    #011F5B;   /* Penn Navy — footers, section numerals */
+  --brand-accent:  #C7A574;   /* Editorial Gold — hairlines, ornaments */
+
+  /* ---------- NEUTRALS (paper-warm, never pure white) ---------- */
+  --paper:        #FBFAF6;    /* page background — warm off-white */
+  --paper-2:      #F2EFE6;    /* secondary surface */
+  --paper-3:      #E8E3D5;    /* dividers, table zebra */
+  --ink:          #1A1A1A;    /* body text */
+  --ink-2:        #4A4A4A;    /* secondary text */
+  --ink-3:        #8A8578;    /* captions, eyebrows */
+  --hairline:     #C9C2B0;    /* 0.5–1px rules */
+
+  /* ---------- DATA-VIZ PALETTE (chart-safe, school-color-led) ---------- */
+  --viz-1: var(--brand-primary);
+  --viz-2: var(--brand-deep);
+  --viz-3: var(--brand-accent);
+  --viz-4: #6B7B8C;           /* slate */
+  --viz-5: #8A6B3F;           /* burnt umber */
+  --viz-6: #A89878;           /* warm tan */
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --font-display: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --font-body:    "Source Sans 3", "Source Sans Pro", "Lato", -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ---------- TYPE SCALE (slide-optimized; 1280×720) ---------- */
+  --fs-eyebrow:   13px;       /* small caps label */
+  --fs-caption:   14px;
+  --fs-body:      18px;
+  --fs-body-lg:   22px;
+  --fs-h2:        34px;
+  --fs-h1:        56px;
+  --fs-display:   120px;      /* section numerals, key takeaway */
+  --fs-mega:      220px;      /* chapter cover numerals */
+
+  /* ---------- TYPE WEIGHTS ---------- */
+  --fw-light:    300;
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semi:     600;
+  --fw-bold:     700;
+
+  /* ---------- LINE HEIGHTS ---------- */
+  --lh-tight:    1.05;
+  --lh-snug:     1.25;
+  --lh-normal:   1.5;
+  --lh-relaxed:  1.65;
+
+  /* ---------- LETTER SPACING ---------- */
+  --ls-eyebrow:  0.18em;       /* SMALL CAPS LABELS */
+  --ls-display: -0.015em;
+  --ls-h1:      -0.01em;
+  --ls-body:     0;
+
+  /* ---------- SPACING (8pt base, slide-optimized) ---------- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+  --sp-7:  48px;
+  --sp-8:  64px;
+  --sp-9:  96px;
+
+  /* ---------- BORDERS / RADIUS ---------- */
+  --hairline-w: 1px;
+  --rule-w:     2px;
+  --radius-0:   0;            /* default: editorial = sharp corners */
+  --radius-sm:  2px;          /* tiny tags only */
+
+  /* ---------- SLIDE GEOMETRY ---------- */
+  --slide-w:   1280px;
+  --slide-h:   720px;
+  --slide-margin-x: 80px;
+  --slide-margin-y: 64px;
+}
+
+/* =========================================================================
+   SCHOOL PRESETS — copy a block into :root to re-skin
+   ========================================================================= */
+
+/* PENN (default — already applied above)
+   --brand-primary: #990000;  --brand-deep: #011F5B;  --brand-accent: #C7A574;
+*/
+
+/* MIT
+   --brand-primary: #A31F34;  --brand-deep: #8A8B8C;  --brand-accent: #C2B280;
+*/
+
+/* STANFORD
+   --brand-primary: #8C1515;  --brand-deep: #2E2D29;  --brand-accent: #B6B1A9;
+*/
+
+/* HARVARD
+   --brand-primary: #A51C30;  --brand-deep: #1E1E1E;  --brand-accent: #C4A77D;
+*/
+
+/* YALE
+   --brand-primary: #00356B;  --brand-deep: #0F1F3D;  --brand-accent: #BD9B60;
+*/
+
+/* TSINGHUA 清华
+   --brand-primary: #660874;  --brand-deep: #2E1A47;  --brand-accent: #C7A574;
+*/
+
+/* PEKING (PKU) 北大
+   --brand-primary: #94070A;  --brand-deep: #2B1810;  --brand-accent: #C7A574;
+*/
+
+/* =========================================================================
+   SEMANTIC TYPE STYLES
+   Use these classes anywhere; they only depend on the variables above.
+   ========================================================================= */
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--fw-semi);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--brand-deep);
+}
+
+.h1, h1.editorial {
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-h1);
+  color: var(--ink);
+  margin: 0;
+}
+
+.h2, h2.editorial {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin: 0;
+}
+
+.display-numeral {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  font-weight: var(--fw-light);
+  line-height: 1;
+  letter-spacing: var(--ls-display);
+  color: var(--brand-primary);
+  font-variant-numeric: lining-nums;
+}
+
+.mega-numeral {
+  font-family: var(--font-display);
+  font-size: var(--fs-mega);
+  font-weight: var(--fw-light);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--brand-primary);
+  font-variant-numeric: lining-nums;
+}
+
+.body, p.editorial {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--ink);
+}
+
+.body-lg {
+  font-family: var(--font-body);
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--ink);
+}
+
+.caption {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.code, code.editorial {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--brand-deep);
+}
+
+.pull-quote {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: var(--fw-light);
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+/* Decorative hairline — used everywhere */
+.hairline {
+  border: 0;
+  border-top: var(--hairline-w) solid var(--hairline);
+}
+.hairline-gold {
+  border: 0;
+  border-top: var(--hairline-w) solid var(--brand-accent);
+}
+.rule-deep {
+  border: 0;
+  border-top: var(--rule-w) solid var(--brand-deep);
+}

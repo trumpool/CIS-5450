@@ -1,0 +1,2573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Predicting U.S. Flight Delays · CIS 5450</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1a1614; overflow: hidden; font-family: var(--font-body); }
+
+  /* Data-layer semantic colors (added on top of design system) */
+  :root {
+    --data-good: #2F8F6F;
+    --data-good-light: #5BB394;
+    --data-neutral: #B5AE9F;
+    --data-warn-1: #E0A24A;
+    --data-warn-2: #D87B36;
+    --data-bad: #B8401E;
+    --data-bad-deep: #7C1F0E;
+    --data-blue: #2F5C8C;
+    --data-blue-light: #6F92BF;
+  }
+
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+
+  .slide {
+    position: relative;
+    width: var(--slide-w); height: var(--slide-h);
+    background: var(--paper); color: var(--ink);
+    overflow: hidden; transform-origin: center;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);
+  }
+  .slide:not(.active) { display: none !important; }
+
+  /* corner brackets + slide num */
+  .corner-tl, .corner-br {
+    position: absolute; width: 22px; height: 22px;
+    border-color: var(--brand-accent); pointer-events: none; opacity: 0.85;
+  }
+  .corner-tl { top: 28px; left: 28px; border-top: 1px solid; border-left: 1px solid; }
+  .corner-br { bottom: 28px; right: 28px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  /* Penn Engineering school mark — top-right, every slide except cover */
+  .school-corner {
+    position: absolute; top: 30px; right: 56px;
+    width: 130px; height: auto; pointer-events: none; user-select: none;
+    z-index: 4;
+  }
+  .school-corner img { width: 100%; display: block; }
+  .slide.cover .school-corner { display: none; }
+
+  /* Math typography — keep super/subscripts on the same baseline as their root glyph,
+     using the surrounding font (Cormorant or Source Sans) rather than Unicode codepoints
+     which render with inconsistent proportions in serif display fonts. */
+  sup.m, sub.m {
+    font-size: 0.55em; line-height: 0;
+    font-feature-settings: "lnum"; font-variant-numeric: lining-nums;
+  }
+  sup.m { vertical-align: 0.5em; }
+  sub.m { vertical-align: -0.2em; }
+
+  .footer {
+    position: absolute; left: var(--slide-margin-x); right: var(--slide-margin-x); bottom: 30px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 10px; border-top: 1px solid var(--hairline);
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600;
+  }
+  .footer .school { color: var(--brand-deep); }
+  .footer .num { font-family: var(--font-mono); letter-spacing: 0.04em; color: var(--brand-deep); font-weight: 500; }
+  .footer .num em { font-style: normal; color: var(--ink-3); }
+
+  /* title-block (used on most content slides) */
+  .title-block { padding: 0 var(--slide-margin-x); padding-top: 76px; max-width: 1120px; position: relative; }
+  .eyebrow {
+    font-family: var(--font-body); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.32em; text-transform: uppercase; color: var(--brand-deep);
+    margin-bottom: 18px; display: inline-flex; align-items: center; gap: 12px;
+  }
+  .eyebrow::before { content: ""; display: inline-block; width: 28px; height: 1px; background: var(--brand-accent); }
+  .h1 {
+    font-family: var(--font-display); font-size: 52px; font-weight: 400;
+    line-height: 1.04; letter-spacing: -0.018em; color: var(--ink); margin: 0;
+  }
+  .h1 em { font-style: italic; color: var(--brand-primary); font-weight: 400; }
+  .h1 b { color: var(--brand-primary); font-weight: 500; font-style: normal; }
+  .gold-rule { width: 88px; height: 1px; background: var(--brand-accent); margin: 18px 0 22px; border: 0; }
+
+  /* =============================================================
+     01 · COVER
+     ============================================================= */
+  .slide.cover { background: var(--paper); padding: 56px var(--slide-margin-x); display: grid; grid-template-rows: auto 1fr auto; }
+  .cover::before {
+    content: ""; position: absolute; inset: 36px; border: 1px solid var(--brand-accent); pointer-events: none; opacity: 0.5;
+  }
+  .cover .corner-tl, .cover .corner-br { display: none; }
+  .cover .top-mark {
+    position: relative; display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600;
+  }
+  .cover .top-mark .school-name-text { max-width: 460px; line-height: 1.6; }
+  .cover .top-mark .ornament { display: flex; align-items: center; gap: 14px; flex: 1; padding: 0 32px; }
+  .cover .top-mark .ornament .line { flex: 1; height: 1px; background: var(--brand-accent); opacity: 0.6; }
+  .cover .top-mark .ornament .dot { width: 4px; height: 4px; background: var(--brand-accent); transform: rotate(45deg); }
+  .cover .school-mark { width: 200px; flex-shrink: 0; }
+  .cover .school-mark img { width: 100%; display: block; }
+
+  .cover .body { position: relative; align-self: center; max-width: 1080px; }
+  .cover .body::before {
+    content: ""; position: absolute; left: -28px; top: 8px; bottom: 8px; width: 2px; background: var(--brand-primary);
+  }
+  .cover .pretitle {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.36em; text-transform: uppercase;
+    color: var(--brand-primary); font-weight: 600; margin-bottom: 28px;
+  }
+  .cover .pretitle::after { content: ""; flex: 0 0 64px; height: 1px; background: var(--brand-primary); }
+  .cover .title {
+    font-family: var(--font-display); font-size: 96px; font-weight: 400;
+    line-height: 0.96; letter-spacing: -0.025em; color: var(--ink); margin: 0;
+  }
+  .cover .title em { font-style: italic; color: var(--brand-primary); font-weight: 300; }
+  .cover .subtitle {
+    font-family: var(--font-display); font-size: 28px; font-weight: 300; font-style: italic;
+    color: var(--ink-2); margin: 22px 0 0; max-width: 880px; line-height: 1.25;
+  }
+  .cover .subtitle .amp { color: var(--brand-accent); font-weight: 400; padding: 0 4px; }
+  .cover .meta {
+    position: absolute; left: var(--slide-margin-x); right: var(--slide-margin-x); bottom: 56px;
+    display: grid; grid-template-columns: 1.4fr auto 1fr; gap: 48px;
+    align-items: end; padding-top: 22px; border-top: 1px solid var(--ink);
+    z-index: 2; background: var(--paper);
+  }
+  .cover .meta::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 18px; border-top: 1px solid var(--ink); opacity: 0.18;
+  }
+  .cover .authors { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); }
+  .cover .label-sm {
+    display: block; font-family: var(--font-body); font-size: 9px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .cover .authors .names { display: flex; gap: 14px; flex-wrap: wrap; }
+  .cover .authors .names span { position: relative; }
+  .cover .authors .names span + span::before {
+    content: "·"; position: absolute; left: -10px; color: var(--brand-accent);
+  }
+  .cover .course { text-align: center; font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--brand-deep); }
+  .cover .course .roman { font-style: italic; font-weight: 400; color: var(--ink-3); margin: 0 4px; }
+  .cover .date { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--brand-deep); text-align: right; }
+  .cover .date .place { color: var(--ink); font-style: italic; font-weight: 400; }
+
+  /* cover plane silhouette — lifted above the meta info bar */
+  .cover .plane-trail { position: absolute; right: 80px; bottom: 200px; width: 340px; height: 170px; opacity: 0.5; pointer-events: none; z-index: 0; }
+
+  /* =============================================================
+     02 · The Problem  (big $30B)
+     ============================================================= */
+  .problem { padding: 0; }
+  .problem .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; padding: 0 var(--slide-margin-x); margin-top: 24px; align-items: center; }
+  .problem ul { list-style: none; padding: 0; margin: 0; }
+  .problem ul li {
+    padding: 14px 0; border-bottom: 1px solid var(--hairline);
+    font-family: var(--font-body); font-size: 18px; line-height: 1.5; color: var(--ink);
+    display: grid; grid-template-columns: 22px 1fr; gap: 14px; align-items: baseline;
+  }
+  .problem ul li::before {
+    content: "––"; font-family: var(--font-display); font-weight: 400;
+    color: var(--brand-accent); letter-spacing: -0.05em;
+  }
+  .problem ul li b { color: var(--brand-primary); font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 20px; }
+  .problem .big {
+    text-align: center; position: relative;
+  }
+  .problem .big .num {
+    font-family: var(--font-display); font-size: 200pt; font-weight: 300; line-height: 0.9;
+    color: var(--brand-primary); letter-spacing: -0.04em; font-variant-numeric: lining-nums;
+    display: inline-block; position: relative;
+  }
+  .problem .big .num::after {
+    content: ""; position: absolute; left: 8%; right: 8%; bottom: -10px; height: 3px;
+    background: var(--brand-accent);
+  }
+  .problem .big .cap {
+    margin-top: 26px; font-family: var(--font-display); font-size: 22px; font-style: italic;
+    color: var(--ink-2); line-height: 1.3;
+  }
+  .problem .source-bar {
+    position: absolute; left: var(--slide-margin-x); right: var(--slide-margin-x); bottom: 80px;
+    padding: 10px 16px; background: var(--paper-2); border-left: 2px solid var(--brand-deep);
+    font-family: var(--font-body); font-size: 12px; color: var(--ink-2); font-style: italic;
+  }
+  .problem .source-bar b { font-style: normal; font-weight: 600; color: var(--brand-deep); letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; margin-right: 10px; }
+
+  /* =============================================================
+     03 · Stakeholders (4 col)
+     ============================================================= */
+  .stakeholders .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px;
+    padding: 0 var(--slide-margin-x); margin-top: 26px;
+  }
+  .stakeholders .col {
+    padding: 22px 18px; background: var(--paper-2); border-top: 2px solid var(--brand-deep);
+    display: flex; flex-direction: column; min-height: 270px;
+  }
+  .stakeholders .col .icon {
+    width: 46px; height: 46px; margin-bottom: 16px; color: var(--brand-deep);
+  }
+  .stakeholders .col .name {
+    font-family: var(--font-display); font-size: 26px; font-weight: 500; color: var(--ink); margin: 0 0 6px; line-height: 1.1;
+  }
+  .stakeholders .col .role {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 14px;
+  }
+  .stakeholders .col p {
+    font-family: var(--font-body); font-size: 14px; line-height: 1.55; color: var(--ink-2); margin: 0;
+  }
+  .stakeholders .roi-bar {
+    margin: 28px var(--slide-margin-x) 0; padding: 18px 24px;
+    background: var(--brand-accent); color: var(--ink);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .stakeholders .roi-bar .lhs {
+    font-family: var(--font-display); font-style: italic; font-size: 22px; color: var(--brand-deep);
+  }
+  .stakeholders .roi-bar .rhs {
+    font-family: var(--font-display); font-size: 36px; font-weight: 500; color: var(--brand-primary);
+    letter-spacing: -0.01em;
+  }
+  .stakeholders .roi-bar .rhs small { font-family: var(--font-body); font-size: 11px; letter-spacing: 0.22em; color: var(--brand-deep); font-weight: 600; margin-left: 12px; vertical-align: middle; }
+
+  /* =============================================================
+     04 · Dataset  (BTS / NOAA cards + arrow)
+     ============================================================= */
+  .dataset .cards {
+    display: grid; grid-template-columns: 1fr 80px 1fr; gap: 24px;
+    padding: 0 var(--slide-margin-x); margin-top: 22px; align-items: stretch;
+  }
+  .dataset .card {
+    background: var(--paper-2); border: 1px solid var(--hairline);
+    border-top: 4px solid var(--brand-deep); padding: 18px 24px; position: relative;
+  }
+  .dataset .card .src-label {
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 8px;
+  }
+  .dataset .card .src-name {
+    font-family: var(--font-display); font-size: 30px; font-weight: 500; color: var(--ink); margin: 0 0 4px;
+  }
+  .dataset .card .src-name em { font-style: italic; color: var(--brand-primary); font-weight: 400; }
+  .dataset .card .src-sub {
+    font-family: var(--font-display); font-style: italic; font-size: 17px; color: var(--brand-deep); margin: 0 0 16px;
+  }
+  .dataset .card .stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;
+    border-top: 1px solid var(--hairline); padding-top: 14px;
+  }
+  .dataset .card .stats .stat .v {
+    font-family: var(--font-display); font-size: 30px; font-weight: 400; color: var(--brand-primary); line-height: 1;
+    font-variant-numeric: lining-nums;
+  }
+  .dataset .card .stats .stat .l {
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin-top: 6px;
+  }
+  .dataset .card ul { list-style: none; padding: 0; margin: 14px 0 0; }
+  .dataset .card ul li {
+    padding: 6px 0; font-family: var(--font-body); font-size: 13px; color: var(--ink-2); line-height: 1.5;
+    display: grid; grid-template-columns: 14px 1fr; gap: 8px;
+  }
+  .dataset .card ul li::before { content: "·"; color: var(--brand-accent); font-weight: 700; }
+  .dataset .card .src-url {
+    margin-top: 14px; padding-top: 10px; border-top: 1px dotted var(--hairline);
+    font-family: var(--font-mono); font-size: 8.5pt; color: var(--ink-3); letter-spacing: 0.02em;
+    word-break: break-all;
+  }
+
+  .dataset .arrow {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  }
+  .dataset .arrow svg { width: 60px; height: 60px; color: var(--brand-primary); }
+  .dataset .arrow .label {
+    font-family: var(--font-mono); font-size: 12px; color: var(--brand-deep); font-weight: 500;
+    background: var(--paper-2); padding: 6px 10px; border: 1px solid var(--brand-accent);
+    white-space: nowrap;
+  }
+  .dataset .footnote {
+    margin: 8px var(--slide-margin-x) 0;
+    font-family: var(--font-body); font-style: italic; font-size: 11.5px; color: var(--ink-3);
+    text-align: center; padding-top: 6px; border-top: 1px solid var(--hairline); line-height: 1.4;
+  }
+  .dataset .footnote b { color: var(--brand-primary); font-style: normal; font-weight: 600; }
+  .dataset .footnote-2 {
+    margin: 3px var(--slide-margin-x) 0;
+    font-family: var(--font-body); font-size: 9.5px; color: var(--ink-3);
+    text-align: center; line-height: 1.35; letter-spacing: 0.01em;
+  }
+  .dataset .footnote-2 b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 8.5px; }
+  .dataset .footnote-2 code { font-family: var(--font-mono); font-size: 9px; color: var(--brand-primary); background: var(--paper-2); padding: 0 3px; border: 1px solid var(--hairline); }
+
+  /* =============================================================
+     05 · Cascading Delay  (chart left, quote right)
+     ============================================================= */
+  .cascade .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 36px; padding: 0 var(--slide-margin-x); margin-top: 16px; align-items: stretch; }
+  .cascade .chart-frame {
+    border: 1px solid var(--hairline); padding: 18px 22px 24px; background: var(--paper);
+  }
+  .cascade .figlabel {
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 6px;
+  }
+  .cascade .quote {
+    background: var(--paper-2); border-left: 3px solid var(--brand-accent);
+    padding: 24px 22px; display: flex; flex-direction: column; justify-content: center;
+    font-family: var(--font-display); font-style: italic; font-size: 26px; line-height: 1.3; color: var(--ink);
+  }
+  .cascade .quote .lead {
+    display: block; font-family: var(--font-body); font-style: normal; font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 16px;
+  }
+  .cascade .quote b { color: var(--brand-primary); font-style: italic; font-weight: 500; }
+  .cascade .quote .micro { display: block; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hairline);
+    font-family: var(--font-body); font-style: normal; font-size: 12px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+  /* =============================================================
+     06 · Temporal  (line + bar)
+     ============================================================= */
+  .temporal .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 0 var(--slide-margin-x); margin-top: 16px; }
+  .temporal .frame { border: 1px solid var(--hairline); padding: 14px 16px 16px; background: var(--paper); }
+  .temporal .figlabel { font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 4px; }
+  .temporal .legend { display: flex; gap: 18px; margin-top: 8px; font-family: var(--font-body); font-size: 11px; color: var(--ink-2); }
+  .temporal .legend .sw { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle; }
+  .temporal .dow-callout {
+    margin: 12px var(--slide-margin-x) 0; padding-top: 10px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-body); font-size: 12px; color: var(--ink-3);
+    text-align: center; line-height: 1.5;
+  }
+  .temporal .dow-callout b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+
+  /* =============================================================
+     07 · Weather (wind + precip)
+     ============================================================= */
+  .weather .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 0 var(--slide-margin-x); margin-top: 16px; }
+  .weather .frame { border: 1px solid var(--hairline); padding: 14px 16px 16px; background: var(--paper); position: relative; }
+  .weather .figlabel { font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 4px; }
+  .weather .mono-tag {
+    position: absolute; top: 14px; right: 18px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--brand-deep);
+    background: var(--paper-2); padding: 4px 8px; border: 1px solid var(--brand-accent);
+  }
+  .weather .weather-caveat {
+    margin: 14px var(--slide-margin-x) 0;
+    font-family: var(--font-body); font-size: 11.5px; color: var(--ink-3);
+    text-align: center; line-height: 1.5;
+  }
+  .weather .weather-caveat b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+
+  /* =============================================================
+     08 · Hypothesis Tests (4 cards)
+     ============================================================= */
+  .hyp .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+    padding: 0 var(--slide-margin-x); margin-top: 20px;
+  }
+  .hyp .card {
+    background: var(--paper); border: 1px solid var(--hairline);
+    border-top: 4px solid var(--brand-deep); padding: 14px 14px 16px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    min-height: 348px;
+  }
+  .hyp .card .tag {
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 12px;
+  }
+  .hyp .card .question {
+    font-family: var(--font-display); font-size: 21px; font-weight: 500; color: var(--ink); line-height: 1.18;
+    margin: 0 0 14px; min-height: 48px;
+  }
+  .hyp .card .effect {
+    font-family: var(--font-display); font-size: 60px; font-weight: 400; color: var(--brand-primary);
+    line-height: 1; letter-spacing: -0.02em; font-variant-numeric: lining-nums;
+    margin: 6px 0 14px;
+  }
+  .hyp .card .effect sub { font-size: 26px; vertical-align: baseline; }
+  .hyp .card .method {
+    font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--brand-deep); line-height: 1.3;
+  }
+  .hyp .card .pval {
+    font-family: var(--font-mono); font-size: 13px; color: var(--data-good); font-weight: 500;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--hairline); width: 100%;
+  }
+  .hyp .card .nrow {
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-3); font-weight: 400;
+    margin-top: 6px; letter-spacing: 0.02em; line-height: 1.4;
+  }
+  .hyp .card .nrow sub { font-size: 8.5px; }
+  .hyp .takeaway-line {
+    margin: 18px var(--slide-margin-x) 0; padding-top: 12px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-display); font-style: italic; font-size: 17px; color: var(--ink-2);
+    text-align: center; line-height: 1.4;
+  }
+  .hyp .takeaway-line b { color: var(--brand-primary); font-style: italic; font-weight: 500; }
+  .hyp .hyp-foot {
+    margin: 8px var(--slide-margin-x) 0;
+    font-family: var(--font-body); font-size: 11px; color: var(--ink-3);
+    text-align: center; line-height: 1.5;
+  }
+  .hyp .hyp-foot b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+
+  /* =============================================================
+     09 · Modeling Approach (bullets + timeline)
+     ============================================================= */
+  .modeling .body { padding: 0 var(--slide-margin-x); margin-top: 18px; }
+  .modeling ul { list-style: none; padding: 0; margin: 0 0 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 36px; }
+  .modeling ul li {
+    padding: 10px 0; border-bottom: 1px solid var(--hairline);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.5; color: var(--ink);
+    display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: baseline;
+  }
+  .modeling ul li::before {
+    content: ""; display: block; width: 6px; height: 6px;
+    background: var(--brand-accent); transform: rotate(45deg) translateY(6px);
+  }
+  .modeling ul li b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-weight: 500; font-size: 17px; }
+  .modeling ul li code { font-family: var(--font-mono); font-size: 13px; color: var(--brand-deep); background: var(--paper-2); padding: 1px 6px; }
+
+  .modeling .timeline {
+    margin-top: 14px; padding: 18px 24px; background: var(--paper-2); border: 1px solid var(--hairline);
+  }
+  .modeling .timeline-label {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  }
+  .modeling .timeline-label .shift-tag {
+    font-family: var(--font-display); font-style: italic; font-size: 11px;
+    letter-spacing: 0; text-transform: none; color: var(--ink-3); font-weight: 400;
+  }
+  .modeling .tl-bars {
+    display: grid; grid-template-columns: 10fr 2fr; height: 38px; gap: 4px;
+    border: 1px solid var(--hairline); background: var(--paper);
+  }
+  .modeling .tl-bars .bar {
+    display: flex; align-items: center; padding: 0 14px;
+    font-family: var(--font-body); font-size: 12px; color: var(--paper); font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .modeling .tl-bars .train { background: var(--data-blue); }
+  .modeling .tl-bars .test { background: var(--data-warn-2); }
+  .modeling .tl-axis {
+    display: grid; grid-template-columns: repeat(12, 1fr); margin-top: 6px;
+    font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-align: center;
+  }
+  .modeling .tl-axis span:nth-child(11), .modeling .tl-axis span:nth-child(12) { color: var(--data-warn-2); font-weight: 600; }
+  .modeling .tl-meta {
+    margin-top: 8px; text-align: right;
+    font-family: var(--font-mono); font-size: 8.5pt; color: var(--ink-3); letter-spacing: 0.04em;
+  }
+
+  /* =============================================================
+     10 · Model Performance
+     ============================================================= */
+  .perf .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 var(--slide-margin-x); margin-top: 10px; }
+  .perf .frame { border: 1px solid var(--hairline); padding: 12px 14px 12px; background: var(--paper); }
+  .perf .figlabel { font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 4px; }
+  .perf .legend { display: flex; gap: 18px; margin-top: 6px; font-family: var(--font-body); font-size: 11px; color: var(--ink-2); }
+  .perf .legend .sw { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle; }
+  .perf .highlight {
+    margin: 10px var(--slide-margin-x) 0;
+    padding: 8px 22px; background: var(--brand-accent); color: var(--ink);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .perf .highlight .lhs {
+    font-family: var(--font-display); font-style: italic; font-size: 18px; color: var(--brand-deep);
+  }
+  .perf .highlight .rhs {
+    font-family: var(--font-mono); font-size: 14px; color: var(--ink); font-weight: 500;
+  }
+  .perf .highlight .rhs b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-size: 20px; font-weight: 500; padding: 0 4px; }
+
+  .perf .smote-strip {
+    margin: 6px var(--slide-margin-x) 0;
+  }
+  .perf .sm-inline {
+    margin: 0; font-family: var(--font-body); font-size: 11.5px; color: var(--ink-2);
+    text-align: center; line-height: 1.45;
+  }
+  .perf .sm-inline b { font-family: var(--font-display); font-style: normal; color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+  .perf .sm-inline b.g { font-family: var(--font-mono); font-style: normal; color: var(--data-good); font-weight: 600; letter-spacing: 0; text-transform: none; font-size: 11.5px; }
+  .perf .sm-inline code { font-family: var(--font-mono); font-size: 11px; color: var(--brand-primary); background: var(--paper-2); padding: 1px 5px; border: 1px solid var(--hairline); }
+
+  /* =============================================================
+     11 · Feature Importance
+     ============================================================= */
+  .feat .layout { padding: 0 var(--slide-margin-x); margin-top: 12px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 28px; }
+  .feat .frame { border: 1px solid var(--hairline); padding: 14px 18px; background: var(--paper); }
+  .feat .right-pane { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+  .feat .legend-card {
+    background: var(--paper-2); border: 1px solid var(--hairline); padding: 16px 18px;
+  }
+  .feat .legend-card .ttl {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 12px;
+  }
+  .feat .legend-card .row {
+    display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 10px;
+    font-family: var(--font-body); font-size: 13px; color: var(--ink); padding: 5px 0;
+  }
+  .feat .legend-card .sw { width: 14px; height: 10px; }
+  .feat .takeaway {
+    background: var(--paper-2); border-left: 3px solid var(--brand-accent); padding: 16px 20px;
+    font-family: var(--font-display); font-style: italic; font-size: 18px; color: var(--ink); line-height: 1.35;
+  }
+  .feat .takeaway b { color: var(--brand-primary); font-weight: 500; }
+  .feat .takeaway .dom-tag {
+    display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hairline);
+    font-family: var(--font-mono); font-style: normal; font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.04em; text-transform: lowercase;
+  }
+  .feat .takeaway .dom-tag b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-size: 18px; padding: 0 2px; }
+  .feat .gain-cap {
+    margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--hairline);
+    font-family: var(--font-body); font-size: 11px; color: var(--ink-3); line-height: 1.5;
+  }
+  .feat .gain-cap b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+  .feat .gain-cap i { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-weight: 500; }
+
+  /* =============================================================
+     12 · Regression detour
+     ============================================================= */
+  .regress .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 0 var(--slide-margin-x); margin-top: 14px; }
+  .regress .frame { border: 1px solid var(--hairline); padding: 14px 18px 18px; background: var(--paper); }
+  .regress .figlabel { font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 6px; }
+  .regress table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-body); font-size: 14px; color: var(--ink);
+  }
+  .regress thead th {
+    text-align: right; padding: 10px 8px; border-bottom: 1.5px solid var(--ink);
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600;
+  }
+  .regress thead th:first-child { text-align: left; }
+  .regress tbody td {
+    padding: 12px 8px; border-bottom: 1px solid var(--hairline);
+    font-family: var(--font-display); font-size: 16px;
+    text-align: right; font-variant-numeric: lining-nums;
+  }
+  .regress tbody td:first-child {
+    text-align: left; font-family: var(--font-body); font-weight: 500; font-size: 14px; color: var(--ink-2);
+  }
+  .regress tr.best td { background: rgba(199,165,116,0.18); color: var(--ink); font-weight: 600; }
+  .regress tr.best td:first-child { color: var(--brand-primary); font-weight: 600; }
+  .regress tr.naive td { color: var(--ink-3); font-style: italic; }
+  .regress .verdict {
+    margin: 10px var(--slide-margin-x) 0;
+    background: var(--paper-2); border-left: 3px solid var(--brand-primary);
+    padding: 10px 18px;
+    font-family: var(--font-display); font-style: italic; font-size: 14.5px; color: var(--ink); line-height: 1.4;
+  }
+  .regress .verdict b { color: var(--brand-primary); font-weight: 500; }
+  .regress .verdict small {
+    display: block; margin-top: 4px;
+    font-family: var(--font-body); font-style: normal; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.02em; line-height: 1.4;
+  }
+  .regress .verdict small code { font-family: var(--font-mono); font-size: 9.5px; color: var(--brand-deep); background: var(--paper); padding: 1px 4px; border: 1px solid var(--hairline); }
+
+  /* =============================================================
+     13 · Insurance ROI
+     ============================================================= */
+  .roi { padding: 0; }
+  .roi .layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    padding: 0 var(--slide-margin-x); margin-top: 18px;
+    position: relative;
+  }
+  .roi .pane {
+    padding: 28px 28px 26px; min-height: 380px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .roi .pane.naive { background: var(--paper-2); border: 1px solid var(--hairline); }
+  .roi .pane.ours {
+    background: linear-gradient(135deg, #FBFAF6 0%, #F5EAD2 100%);
+    border: 1px solid var(--brand-accent); border-left: 0;
+    position: relative;
+  }
+  .roi .pane.ours::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--brand-accent);
+  }
+  .roi .pane .tag {
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 10px;
+  }
+  .roi .pane.ours .tag { color: var(--brand-primary); }
+  .roi .pane h3 {
+    font-family: var(--font-display); font-size: 32px; font-weight: 500; line-height: 1.1; margin: 0 0 16px; color: var(--ink);
+  }
+  .roi .pane h3 em { font-style: italic; color: var(--brand-primary); }
+  .roi .row {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--font-body); font-size: 14px; color: var(--ink-2);
+  }
+  .roi .row .v {
+    font-family: var(--font-display); font-style: italic; font-weight: 500; color: var(--ink); font-size: 18px;
+  }
+  .roi .pane.ours .row .v { color: var(--brand-primary); }
+  .roi .roi-num {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hairline);
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .roi .roi-num .l { font-family: var(--font-body); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .roi .roi-num .v {
+    font-family: var(--font-display); font-size: 56px; font-weight: 400; line-height: 1; color: var(--brand-primary);
+    font-variant-numeric: lining-nums;
+  }
+  .roi .pane.naive .roi-num .v { color: var(--ink-2); }
+
+  .roi .multiplier {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-10deg);
+    z-index: 5; pointer-events: none;
+    font-family: var(--font-display); font-size: 200pt; font-weight: 300;
+    line-height: 0.85; color: var(--brand-primary); letter-spacing: -0.04em;
+    font-variant-numeric: lining-nums;
+    text-shadow: 0 4px 24px rgba(251, 250, 246, 0.95);
+  }
+  .roi .multiplier small { font-family: var(--font-display); font-style: italic; font-size: 60pt; color: var(--brand-deep); }
+
+  .roi .info-asym {
+    margin: 18px var(--slide-margin-x) 0; padding-top: 12px; border-top: 1px solid var(--hairline);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--ink-2); line-height: 1.4;
+  }
+  .roi .info-asym b { color: var(--brand-primary); font-weight: 500; }
+
+  /* =============================================================
+     13 · Challenges & Future
+     ============================================================= */
+  .future .cols { display: grid; grid-template-columns: 1.05fr 0.95fr 1.05fr; gap: 22px; padding: 0 var(--slide-margin-x); margin-top: 18px; }
+  .future .col h3 {
+    font-family: var(--font-display); font-size: 24px; font-weight: 500; margin: 0 0 6px; color: var(--ink);
+  }
+  .future .col .sub {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 10px;
+  }
+  .future .col ul { list-style: none; padding: 0; margin: 0; }
+  .future .col li {
+    padding: 6px 0; border-bottom: 1px solid var(--hairline);
+    display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: baseline;
+    font-family: var(--font-body); font-size: 11.5px; color: var(--ink); line-height: 1.4;
+  }
+  .future .col.solved li .ic { color: var(--ink-3); }
+  .future .col.next li .ic { color: var(--brand-accent); }
+  .future .col li .ic svg { width: 18px; height: 18px; display: block; }
+  .future .col li b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-weight: 500; font-size: 13px; }
+
+  /* Coverage column: 2-col mini-table layout */
+  .future .col.coverage { background: var(--paper-2); padding: 16px 18px; border: 1px solid var(--hairline); margin-top: -2px; }
+  .future .col.coverage h3 { color: var(--brand-deep); }
+  .future .col.coverage .cov-list { display: block; }
+  .future .col.coverage .cov-list li {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: baseline;
+    padding: 6px 0; border-bottom: 1px dotted var(--hairline);
+    font-family: var(--font-body); font-size: 12px;
+  }
+  .future .col.coverage .cv {
+    font-family: var(--font-mono); font-size: 11px; color: var(--brand-primary); font-weight: 500;
+  }
+  .future .col.coverage .ck {
+    font-family: var(--font-display); font-style: italic; font-size: 12px; color: var(--ink-3);
+    text-align: right;
+  }
+
+  /* =============================================================
+     Shared figure-box utility (used across new modeling slides)
+     ============================================================= */
+  .figbox-fr {
+    background: var(--paper-2); border: 1px solid var(--hairline);
+    padding: 12px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .figbox-fr img {
+    max-width: 100%; max-height: 100%; display: block;
+    background: #fff; padding: 6px; border: 1px solid var(--hairline);
+    object-fit: contain;
+  }
+  .figbox-fr .figcap-inline {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--brand-deep); font-weight: 600;
+  }
+
+  /* =============================================================
+     05 · Data Quality + Class Imbalance
+     ============================================================= */
+  .quality .layout {
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px;
+    padding: 0 var(--slide-margin-x); margin-top: 16px;
+  }
+  .quality .layout > * { min-width: 0; }
+  .quality .figbox-fr { max-height: 360px; overflow: hidden; }
+  .quality .figbox-fr img { max-height: 300px; }
+  .quality .figbox-fr .figcap-inline { max-width: 100%; }
+  .quality .panel {
+    display: flex; flex-direction: column;
+    font-family: var(--font-body); font-size: 13px; color: var(--ink-2); line-height: 1.5;
+  }
+  .quality .panel .step {
+    display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 10px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .quality .panel .step .n {
+    font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); font-weight: 600;
+    background: var(--paper-2); padding: 2px 6px; border: 1px solid var(--hairline);
+    text-align: center;
+  }
+  .quality .panel .step b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-weight: 500; }
+  .quality .panel .step .v {
+    font-family: var(--font-display); font-style: italic; font-size: 16px; color: var(--ink); white-space: nowrap;
+  }
+  .quality .takeaway {
+    margin: 16px var(--slide-margin-x) 0; padding-top: 12px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-display); font-style: italic; font-size: 17px; color: var(--ink); text-align: center;
+  }
+  .quality .takeaway b { color: var(--brand-primary); font-weight: 500; }
+
+  /* =============================================================
+     06 · Feature Engineering matrix
+     ============================================================= */
+  .feateng .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    padding: 0 var(--slide-margin-x); margin-top: 14px;
+  }
+  .feateng .cat {
+    background: var(--paper-2); border: 1px solid var(--hairline);
+    border-top: 3px solid var(--brand-deep);
+    padding: 8px 12px;
+  }
+  .feateng .cat .ttl {
+    font-family: var(--font-body); font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 2px;
+  }
+  .feateng .cat .cnt {
+    font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--brand-primary); line-height: 1;
+  }
+  .feateng .cat .cnt small {
+    font-family: var(--font-body); font-size: 9px; color: var(--ink-3); letter-spacing: 0.04em; margin-left: 4px; font-weight: 600;
+  }
+  .feateng .cat ul { list-style: none; padding: 0; margin: 5px 0 0; }
+  .feateng .cat li {
+    padding: 2px 0; font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-2); line-height: 1.35;
+  }
+  .feateng .pipeline {
+    margin: 10px var(--slide-margin-x) 0; padding: 8px 22px;
+    background: var(--brand-accent); display: flex; align-items: center; justify-content: center; gap: 22px;
+  }
+  .feateng .pipeline .step {
+    font-family: var(--font-display); font-size: 15px; color: var(--brand-deep); font-weight: 500;
+  }
+  .feateng .pipeline .step b { color: var(--brand-primary); font-style: italic; padding: 0 4px; font-size: 18px; }
+  .feateng .pipeline .arr {
+    font-family: var(--font-mono); color: var(--ink); font-size: 15px;
+  }
+  .feateng .anti {
+    margin: 8px var(--slide-margin-x) 0;
+    font-family: var(--font-body); font-size: 10.5px; color: var(--ink-3); text-align: center;
+    padding-top: 8px; border-top: 1px solid var(--hairline); line-height: 1.45;
+  }
+  .feateng .anti b { color: var(--brand-deep); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9.5px; }
+  .feateng .anti code { font-family: var(--font-mono); font-size: 10px; color: var(--brand-primary); background: var(--paper-2); padding: 1px 4px; border: 1px solid var(--hairline); }
+
+  /* =============================================================
+     10 · Airline reliability
+     ============================================================= */
+  .airline .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px;
+    padding: 0 var(--slide-margin-x); margin-top: 16px;
+  }
+  .airline .layout > * { min-width: 0; }
+  .airline .figbox-fr { max-height: 380px; overflow: hidden; }
+  .airline .figbox-fr img { max-height: 320px; }
+  .airline .figbox-fr .figcap-inline { max-width: 100%; }
+  .airline .takeaway {
+    margin: 10px var(--slide-margin-x) 0; padding-top: 10px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-display); font-style: italic; font-size: 13.5px; color: var(--ink); text-align: center; line-height: 1.4;
+  }
+  .airline .takeaway b { color: var(--brand-primary); font-weight: 500; }
+
+  /* =============================================================
+     12 · Null distributions visual proof
+     ============================================================= */
+  .nullsim .body { padding: 0 var(--slide-margin-x); margin-top: 8px; }
+  .nullsim .figbox-fr { max-height: 320px; overflow: hidden; padding: 6px 12px; }
+  .nullsim .figbox-fr img { max-height: 280px; }
+  .nullsim .figbox-fr .figcap-inline { max-width: 100%; }
+  .nullsim .legend {
+    margin: 8px var(--slide-margin-x) 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;
+    font-family: var(--font-body); font-size: 10px; color: var(--ink-2);
+  }
+  .nullsim .legend .item { border-left: 2px solid var(--brand-deep); padding-left: 8px; }
+  .nullsim .legend .item .ttl {
+    font-family: var(--font-display); font-style: italic; font-size: 12px; color: var(--brand-primary); font-weight: 500;
+  }
+  .nullsim .legend .item .desc { font-size: 9.5px; color: var(--ink-3); margin-top: 1px; line-height: 1.3; }
+
+  /* =============================================================
+     14 / 15 / 16 / 17 — Modeling deep-dive layouts
+     ============================================================= */
+  .modeldetail .layout {
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px;
+    padding: 0 var(--slide-margin-x); margin-top: 16px;
+  }
+  .modeldetail .layout.full { grid-template-columns: minmax(0, 1fr); }
+  .modeldetail .layout > * { min-width: 0; }
+  .modeldetail .figbox-fr { overflow: hidden; }
+  .modeldetail .figbox-fr .figcap-inline { max-width: 100%; }
+  .modeldetail .figbox-fr { max-height: 420px; }
+  .modeldetail .figbox-fr img { max-height: 360px; }
+  .modeldetail .panel {
+    display: flex; flex-direction: column; gap: 14px;
+    font-family: var(--font-body); font-size: 13.5px; color: var(--ink-2); line-height: 1.55;
+  }
+  .modeldetail .panel h4 {
+    font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink); margin: 0;
+  }
+  .modeldetail .panel h4 em { font-style: italic; color: var(--brand-primary); }
+  .modeldetail .panel .keynum {
+    background: var(--paper-2); border-left: 3px solid var(--brand-accent); padding: 14px 16px;
+  }
+  .modeldetail .panel .keynum .v {
+    font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--brand-primary); line-height: 1;
+    font-variant-numeric: lining-nums;
+  }
+  .modeldetail .panel .keynum .v small {
+    font-size: 14px; color: var(--brand-deep); font-style: italic; font-weight: 400; margin-left: 6px;
+  }
+  .modeldetail .panel .keynum .lab {
+    font-family: var(--font-body); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brand-deep); font-weight: 600; margin-bottom: 6px;
+  }
+  .modeldetail .panel ul { list-style: none; padding: 0; margin: 0; }
+  .modeldetail .panel ul li {
+    padding: 6px 0 6px 18px; border-bottom: 1px solid var(--hairline);
+    font-size: 12.5px; line-height: 1.45; position: relative;
+  }
+  .modeldetail .panel ul li::before {
+    content: ""; position: absolute; left: 0; top: 13px;
+    display: block; width: 5px; height: 5px;
+    background: var(--brand-accent); transform: rotate(45deg);
+  }
+  .modeldetail .panel ul li b { font-family: var(--font-display); font-style: italic; color: var(--brand-primary); font-weight: 500; }
+  .modeldetail .panel ul li code { font-family: var(--font-mono); font-size: 11.5px; color: var(--brand-deep); background: var(--paper-2); padding: 1px 5px; }
+
+  /* =============================================================
+     23 · Thanks / Q&A
+     ============================================================= */
+  .thanks { background: var(--paper); }
+  .thanks .body {
+    position: absolute; left: 80px; right: 80px; top: 50%; transform: translateY(-50%);
+  }
+  .thanks .label { font-family: var(--font-body); font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--brand-deep); font-weight: 600; margin-bottom: 22px; }
+  .thanks .big { font-family: var(--font-display); font-size: 168px; font-weight: 300; line-height: 0.95; letter-spacing: -0.025em; color: var(--ink); margin: 0; }
+  .thanks .big em { font-style: italic; color: var(--brand-primary); font-weight: 400; }
+  .thanks .gold-rule { width: 200px; margin: 30px 0 22px; }
+  .thanks .repo-row { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
+  .thanks .repo { display: inline-block; font-family: var(--font-mono); font-size: 22px; color: var(--brand-deep); padding: 14px 24px; border: 1px solid var(--brand-accent); background: var(--paper-2); }
+  .thanks .repo small { color: var(--ink-3); font-size: 14px; margin-right: 12px; letter-spacing: 0.2em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+  .thanks .qr { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .thanks .qr svg { width: 110px; height: 110px; border: 1px solid var(--hairline); padding: 6px; background: #fff; }
+  .thanks .qr .qr-cap { font-family: var(--font-body); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .thanks .team { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--hairline);
+    display: flex; gap: 28px; font-family: var(--font-display); font-size: 18px; color: var(--ink); }
+  .thanks .team span { position: relative; }
+  .thanks .team span + span::before { content: "·"; position: absolute; left: -18px; color: var(--brand-accent); }
+  .thanks .qa-mark {
+    position: absolute; right: 80px; bottom: 96px;
+    font-family: var(--font-display); font-style: italic; font-size: 56px; color: var(--ink-3); font-weight: 300;
+  }
+
+  /* =============================================================
+     HUD + speaker notes
+     ============================================================= */
+  .hud {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: rgba(26,26,26,0.92); color: var(--paper);
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+    z-index: 100; border: 1px solid rgba(199,165,116,0.3);
+  }
+  .hud button {
+    background: transparent; color: var(--paper); border: 1px solid rgba(199,165,116,0.3);
+    font-family: var(--font-mono); font-size: 11px; padding: 4px 10px; cursor: pointer;
+  }
+  .hud button:hover { background: rgba(199,165,116,0.18); }
+  .hud .sep { opacity: 0.4; }
+  .hud .counter { color: var(--brand-accent); }
+
+  aside.notes { display: none; }
+  body.notes-on aside.notes {
+    display: block;
+    position: fixed; right: 12px; bottom: 60px; width: 460px; max-height: 70vh; overflow: auto;
+    background: rgba(15, 12, 10, 0.97); color: #F2EFE6;
+    border: 1px solid var(--brand-accent); padding: 18px 22px;
+    font-family: var(--font-body); font-size: 14px; line-height: 1.55;
+    z-index: 200;
+  }
+  body.notes-on aside.notes .label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--brand-accent);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid rgba(199,165,116,0.35);
+  }
+  body.notes-on aside.notes p { margin: 0 0 10px; }
+
+  @page { size: 1280px 720px; margin: 0; }
+  @media print {
+    html, body { background: white; overflow: visible; }
+    .stage { display: block; position: static; }
+    .hud, aside.notes { display: none !important; }
+    .slide { display: block !important; page-break-after: always; box-shadow: none; transform: none !important; margin: 0; }
+    .slide:last-child { page-break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <!-- ============================================================
+       01 · COVER
+       ============================================================ -->
+  <section class="slide cover active" data-screen-label="01 Cover">
+    <div class="top-mark">
+      <span class="school-name-text">University of Pennsylvania<br>School of Engineering &amp; Applied Science</span>
+      <span class="ornament"><span class="line"></span><span class="dot"></span><span class="line"></span></span>
+      <span class="school-mark"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    </div>
+    <div class="body">
+      <div class="pretitle">A Final Project · Big Data Analytics</div>
+      <h1 class="title">Predicting U.S.<br><em>Flight Delays.</em></h1>
+      <p class="subtitle">When will your flight be late <span class="amp">&amp;</span> why does it matter?<br>6.8M flight records · NOAA hourly weather · XGBoost AUC 0.819.</p>
+    </div>
+    <div class="meta">
+      <div class="authors">
+        <span class="label-sm">Authors</span>
+        <span class="names"><span>Xiaoyang Wan</span><span>Dong Dong</span><span>Yihong Yu</span><span>Yanchen Zhou</span></span>
+      </div>
+      <div class="course">
+        <span class="label-sm">Course</span>
+        CIS<span class="roman">·</span>5450 Big Data Analytics
+      </div>
+      <div class="date">
+        <span class="label-sm">Presented</span>
+        Spring 2026 <span class="place">· Philadelphia</span>
+      </div>
+    </div>
+    <!-- decorative airplane trail bottom-right -->
+    <svg class="plane-trail" viewBox="0 0 380 200" fill="none" stroke="#C7A574" stroke-width="0.8">
+      <!-- gold grid -->
+      <g opacity="0.4">
+        <line x1="0" y1="40" x2="380" y2="40"/>
+        <line x1="0" y1="80" x2="380" y2="80"/>
+        <line x1="0" y1="120" x2="380" y2="120"/>
+        <line x1="0" y1="160" x2="380" y2="160"/>
+        <line x1="60" y1="0" x2="60" y2="200"/>
+        <line x1="120" y1="0" x2="120" y2="200"/>
+        <line x1="180" y1="0" x2="180" y2="200"/>
+        <line x1="240" y1="0" x2="240" y2="200"/>
+        <line x1="300" y1="0" x2="300" y2="200"/>
+      </g>
+      <!-- arc / trajectory -->
+      <path d="M 10 170 Q 140 -10 360 90" stroke="#990000" stroke-width="1.4" stroke-dasharray="3 4" fill="none" opacity="0.85"/>
+      <!-- plane glyph -->
+      <g transform="translate(340, 96) rotate(28)" stroke="#1A1A1A" stroke-width="1.1" fill="#1A1A1A">
+        <path d="M0,0 L24,-1 L26,-3 L34,-3 L33,0 L34,3 L26,3 L24,1 Z" fill="#1A1A1A"/>
+        <path d="M14,-1 L8,-9 L11,-9 L20,-1 Z M14,1 L8,9 L11,9 L20,1 Z" fill="#1A1A1A"/>
+      </g>
+      <!-- origin dot -->
+      <circle cx="10" cy="170" r="3" fill="#990000" stroke="none"/>
+    </svg>
+  </section>
+
+  <!-- ============================================================
+       02 · The Problem — $30B
+       ============================================================ -->
+  <section class="slide problem" data-screen-label="02 The Problem">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 01 · The Problem</div>
+      <h1 class="h1">Flight delays cost the U.S.<br><em>$30 billion a year.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <ul>
+        <li><span><b>~20%</b> of U.S. domestic flights are delayed ≥ 15 minutes</span></li>
+        <li><span><b>One delay cascades</b> — missed connections, displaced crews, idle gates</span></li>
+        <li><span><b>Pain is shared</b> by passengers, airlines, airports, and insurers</span></li>
+        <li><span><b>6.8M records</b> from 2024 — let us learn who's at risk before takeoff</span></li>
+      </ul>
+      <div class="big">
+        <div class="num">$30B</div>
+        <div class="cap">annual U.S. cost — direct + indirect, 2024 estimate</div>
+      </div>
+    </div>
+    <div class="source-bar"><b>Source</b>FAA / Bureau of Transportation Statistics — On-Time Performance database, 2024 reporting year. Direct cost includes airline operating loss, passenger time loss, and downstream economic impact.</div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">02<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 02 · The Problem · 0:45</div><p>"Last year, almost one in five domestic flights in the U.S. left late by 15 minutes or more. The FAA estimates the total economic cost of these delays at 30 billion dollars a year."</p><p>"But the bigger problem isn't just the dollar number — it's that delays cascade. One late flight makes a tight connection impossible. A displaced aircraft means the next flight starts late too. A delayed crew has to be replaced under FAA duty rules."</p><p>"So our question was simple: given everything we know before the plane is supposed to leave the gate, how well can we predict whether it'll actually be on time? We built our system on 6.8 million flight records from all of 2024."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       03 · Stakeholders
+       ============================================================ -->
+  <section class="slide stakeholders" data-screen-label="03 Stakeholders">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 01 · Value Proposition</div>
+      <h1 class="h1">Who benefits from <em>better predictions?</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="grid">
+      <div class="col">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M24 6 L29 22 L44 26 L29 30 L26 44 L22 30 L4 26 L22 22 Z"/>
+        </svg>
+        <div class="role">Stakeholder · 01</div>
+        <div class="name">Passengers</div>
+        <p>Smarter booking, delay insurance, and downstream-trip planning. Choose the flight, not just the price.</p>
+      </div>
+      <div class="col">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="14" width="28" height="30"/>
+          <line x1="16" y1="20" x2="20" y2="20"/><line x1="24" y1="20" x2="32" y2="20"/>
+          <line x1="16" y1="26" x2="20" y2="26"/><line x1="24" y1="26" x2="32" y2="26"/>
+          <line x1="16" y1="32" x2="20" y2="32"/><line x1="24" y1="32" x2="32" y2="32"/>
+          <path d="M14 14 L24 4 L34 14"/>
+        </svg>
+        <div class="role">Stakeholder · 02</div>
+        <div class="name">Airlines</div>
+        <p>Proactive rebooking, crew rotation, and aircraft swap before disruption snowballs through the network.</p>
+      </div>
+      <div class="col">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="24" y1="4" x2="24" y2="44"/>
+          <path d="M24 8 L34 16 L24 18 Z"/>
+          <line x1="14" y1="38" x2="34" y2="38"/>
+          <line x1="18" y1="44" x2="30" y2="44"/>
+          <circle cx="24" cy="28" r="2"/>
+        </svg>
+        <div class="role">Stakeholder · 03</div>
+        <div class="name">Airports</div>
+        <p>Gate allocation and ground-staff pre-positioning during forecasted high-risk operational windows.</p>
+      </div>
+      <div class="col">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 16 C14 10, 34 10, 34 16 L36 38 C36 42, 12 42, 12 38 Z"/>
+          <line x1="20" y1="14" x2="20" y2="10"/>
+          <line x1="28" y1="14" x2="28" y2="10"/>
+          <text x="24" y="32" font-family="Cormorant Garamond" font-size="12" font-style="italic" fill="currentColor" stroke="none" text-anchor="middle">$</text>
+        </svg>
+        <div class="role">Stakeholder · 04</div>
+        <div class="name">Insurers</div>
+        <p>Risk-priced delay insurance products. Information asymmetry, repriced — see Slide 12.</p>
+      </div>
+    </div>
+    <div class="roi-bar">
+      <span class="lhs">A concrete example we'll show on Slide 12 — the insurance use case.</span>
+      <span class="rhs">+340%<small>ROI vs. naive</small></span>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">03<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 03 · Stakeholders · 0:40</div><p>"Why does anyone care if we can predict delays? Four kinds of stakeholders."</p><p>"Passengers can pick the more reliable flight or buy delay insurance. Airlines can pre-position crews and reroute aircraft before disruptions snowball. Airports can pre-staff gates during forecasted bad windows. And insurers — this is the most concrete one — can price flight delay insurance more accurately or even arbitrage it."</p><p>"We'll come back to that insurance angle at the end with actual ROI numbers — it's a clean way to put a dollar value on the model."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       04 · Dataset
+       ============================================================ -->
+  <section class="slide dataset" data-screen-label="04 Dataset">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 02 · Data</div>
+      <h1 class="h1"><em>6.8M</em> flight records<br>+ hourly weather observations.</h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="src-label">Source · 01</div>
+        <h3 class="src-name">BTS <em>On-Time Performance</em></h3>
+        <p class="src-sub">Every U.S. domestic flight, 2024.</p>
+        <div class="stats">
+          <div class="stat"><div class="v">6.82M</div><div class="l">Cleaned · 96.31% kept</div></div>
+          <div class="stat"><div class="v">7.08M</div><div class="l">Raw rows</div></div>
+        </div>
+        <ul>
+          <li>Scheduled + actual departure / arrival</li>
+          <li>Tail number, route, airline, distance</li>
+          <li>Cancellation + diversion flags</li>
+        </ul>
+        <div class="src-url">transtats.bts.gov/PREZIP/…</div>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="30" x2="50" y2="30"/>
+          <polyline points="40,18 54,30 40,42"/>
+        </svg>
+        <span class="label">merge_asof()</span>
+        <span style="font-family: var(--font-body); font-size: 10px; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 600; text-transform: uppercase;">tolerance · 2 hr</span>
+      </div>
+      <div class="card">
+        <div class="src-label">Source · 02</div>
+        <h3 class="src-name">NOAA <em>ISD-Lite</em></h3>
+        <p class="src-sub">Hourly surface weather, 50 stations.</p>
+        <div class="stats">
+          <div class="stat"><div class="v">8,760</div><div class="l">Hours / station</div></div>
+          <div class="stat"><div class="v">50</div><div class="l">Top-50 airports</div></div>
+        </div>
+        <ul>
+          <li>Wind speed, gust, direction</li>
+          <li>Precipitation, temperature, dewpoint</li>
+          <li>Visibility, cloud ceiling</li>
+        </ul>
+        <div class="src-url">ncei.noaa.gov/pub/data/noaa/isd-lite/</div>
+      </div>
+    </div>
+    <p class="footnote">Joining minute-precise flights to hourly-irregular weather: <b>~80% match rate</b> at top-50 airports (origin 79.5% · dest 79.5%) with 2-hour tolerance.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">04<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 04 · Dataset · 0:45</div><p>"We worked with two public datasets. First is the Bureau of Transportation Statistics' On-Time Performance database — every U.S. domestic flight from 2024, including scheduled and actual times, airline, route, aircraft tail number. 7.08 million raw rows, 6.82 million after cleaning — a 96 percent retention rate."</p><p>"Second is NOAA's hourly weather observations — temperature, wind, precipitation — at the 50 busiest U.S. airports."</p><p>"The technically tricky part is joining them. Flights are minute-precise; weather is hourly and sometimes irregular. We used pandas' merge_asof to match each flight to its nearest-in-time weather reading at both origin and destination, with a 2-hour tolerance. About 80 percent of flights at top-50 airports got a valid weather match."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       05 · Data Quality + Class Imbalance
+       ============================================================ -->
+  <section class="slide quality" data-screen-label="05 Data Quality">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 02 · Data Quality</div>
+      <h1 class="h1">Cleaning the data: <em>96.31% kept,</em> 80:20 imbalance.</h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · 03_eda step 2 · Class imbalance + DepDelay distribution (raw + clipped)</span>
+        <img src="figs/fig_eda_01_cell007.png" alt="Class imbalance and delay-minutes distribution">
+      </figure>
+      <div class="panel">
+        <div class="step"><span class="n">1</span><span><b>Sentinel decode</b> — <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">−9999</code> → <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">NaN</code>; trace precip <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">−1</code> → <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">0.001 mm</code>.</span><span class="v">ISD-Lite quirks</span></div>
+        <div class="step"><span class="n">2</span><span><b>Drop diverted</b> + <b>archive cancelled</b> separately.</span><span class="v">−2.5%</span></div>
+        <div class="step"><span class="n">3</span><span><b>Validate <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">CRSDepTime</code></b> is HHMM (allow <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">2400</code> = midnight).</span><span class="v">structural</span></div>
+        <div class="step"><span class="n">4</span><span><b>Drop &gt;600-min outliers.</b> Long delays distort RMSE; classification target unaffected.</span><span class="v">−0.7%</span></div>
+        <div class="step"><span class="n">5</span><span><b>Dedup</b> by 6-key operational primary key.</span><span class="v">−0.4%</span></div>
+        <div class="step"><span class="n">6</span><span><b>Weather gap-fill</b> per station: linear ≤ 6 h, then ffill / bfill ≤ 3 h.</span><span class="v">~80% join</span></div>
+        <div class="step"><span class="n">7</span><span><b><code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-deep)">precip_6h</code> stays</b> despite 86.7% missing — model handles missing natively.</span><span class="v">retained</span></div>
+      </div>
+    </div>
+    <p class="takeaway">Final feature matrix: <b>6,817,598 rows × 81 columns</b> · 80% on-time vs 20% delayed · class weight <code style="font-family:var(--font-mono); font-size:13px; color:var(--brand-deep)">scale_pos_weight = 3.76</code>.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">05<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 05 · Data Quality · 0:35</div><p>"Before any modeling — what does the data actually look like? About 80 percent of flights are on-time, 20 percent are delayed at least 15 minutes. That's heavy class imbalance, and it's the central challenge of this problem: a naive model that always says on-time gets 80 percent accuracy but is useless."</p><p>"Cleaning was a 7-step pipeline. The notable bits: ISD-Lite uses minus-9999 as a missing sentinel and minus-1 as a trace precipitation indicator — both have to be decoded. We dropped 600-minute-plus outliers because they distort regression but our binary target doesn't care. We deduplicated on a 6-key operational primary key. End result: 96.31 percent of raw rows retained."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       06 · Feature Engineering — 23 features × 8 categories
+       ============================================================ -->
+  <section class="slide feateng" data-screen-label="06 Feature Engineering">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 02 · Feature Engineering</div>
+      <h1 class="h1">23 engineered features in <em>8 categories.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="grid">
+      <div class="cat">
+        <div class="ttl">Time</div>
+        <div class="cnt">5<small>features</small></div>
+        <ul>
+          <li>dep_hour</li>
+          <li>day_of_week</li>
+          <li>month</li>
+          <li>time_block</li>
+          <li>is_holiday ±1d</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Cascading</div>
+        <div class="cnt">2<small>features</small></div>
+        <ul>
+          <li>prev_flight_arr_delay</li>
+          <li>tail_leg_today</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Rolling history</div>
+        <div class="cnt">3<small>features</small></div>
+        <ul>
+          <li>airline_delay_rate_7d</li>
+          <li>route_delay_rate_7d</li>
+          <li>origin_delay_rate_3h</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Congestion</div>
+        <div class="cnt">2<small>features</small></div>
+        <ul>
+          <li>origin_hourly_flights</li>
+          <li>is_origin_hub · 20 hubs</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Weather</div>
+        <div class="cnt">7<small>features</small></div>
+        <ul>
+          <li>worst_precip · worst_wind</li>
+          <li>origin/dest temp · dewpoint</li>
+          <li>weather_severity</li>
+          <li>fog_risk · freezing_rain</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Route</div>
+        <div class="cnt">2<small>features</small></div>
+        <ul>
+          <li>distance_bin (5 buckets)</li>
+          <li>origin → dest pair freq</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Carrier</div>
+        <div class="cnt">1<small>+ one-hot</small></div>
+        <ul>
+          <li>Reporting_Airline (21 codes)</li>
+        </ul>
+      </div>
+      <div class="cat">
+        <div class="ttl">Schedule</div>
+        <div class="cnt">1<small>+ derived</small></div>
+        <ul>
+          <li>CRSElapsedTime</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pipeline">
+      <span class="step"><b>23</b>engineered features</span>
+      <span class="arr">→</span>
+      <span class="step">one-hot expand</span>
+      <span class="arr">→</span>
+      <span class="step"><b>74</b>columns into model</span>
+    </div>
+    <p class="anti"><b>Anti-leakage discipline.</b> Every rolling stat uses <code>shift(1)</code> before <code>rolling()</code> — today's target never feeds today's feature. Removing the <code>shift</code> inflates CV-AUC by 5–6 pp on the same data.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">06<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 06 · Feature Engineering · 0:40</div><p>"23 engineered features grouped into 8 categories — time, cascading, rolling history, congestion, weather, route, carrier, schedule. After one-hot encoding the 21 airline codes plus distance bins, the model receives 74 columns total."</p><p>"The single most important discipline is anti-leakage. Every rolling statistic uses shift-of-1 before the rolling window, so the model never sees today's target reflected back into today's feature. We tested removing the shift — it inflates CV-AUC by 5 to 6 percentage points on the same data, classic leakage signature."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       07 · Cascading Delay (KILLER CHART) — was originally slide 5
+       ============================================================ -->
+  <section class="slide cascade" data-screen-label="07 Cascading Delay">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · EDA #1 — The Killer Chart</div>
+      <h1 class="h1">One late flight <em>predicts the next.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="chart-frame">
+        <div class="figlabel">Figure 1 · Next-flight delay rate by previous-flight arrival delay (same tail number)</div>
+        <svg viewBox="0 0 740 360" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <!-- gridlines (y) -->
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="62" y1="40"  x2="730" y2="40"/>
+            <line x1="62" y1="100" x2="730" y2="100"/>
+            <line x1="62" y1="160" x2="730" y2="160"/>
+            <line x1="62" y1="220" x2="730" y2="220"/>
+            <line x1="62" y1="280" x2="730" y2="280"/>
+          </g>
+          <!-- y-axis labels -->
+          <g fill="#8A8578" font-size="11" font-family="JetBrains Mono, monospace">
+            <text x="56" y="44"  text-anchor="end">80%</text>
+            <text x="56" y="104" text-anchor="end">60%</text>
+            <text x="56" y="164" text-anchor="end">40%</text>
+            <text x="56" y="224" text-anchor="end">20%</text>
+            <text x="56" y="284" text-anchor="end">0%</text>
+          </g>
+          <text x="20" y="170" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em" transform="rotate(-90 20 170)">CURRENT FLIGHT DELAY RATE</text>
+
+          <!-- baseline / overall avg @ 20% -->
+          <line x1="62" y1="220" x2="730" y2="220" stroke="#8A8578" stroke-width="1" stroke-dasharray="4 5"/>
+          <text x="724" y="214" font-size="11" font-style="italic" fill="#8A8578" text-anchor="end">Overall avg: 20%</text>
+
+          <!-- bars: 7 bins, x-positions 80..720 width 80 each -->
+          <!-- helper: 0% = y280, 100% = y20 -> scale 2.6 px/% -->
+          <!-- bars use data-layer semantic colors -->
+
+          <!-- 1) ≤-15 : 10% (good) -->
+          <g>
+            <rect x="86" y="254" width="70" height="26" fill="#2F8F6F"/>
+            <text x="121" y="247" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">10%</text>
+            <text x="121" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">≤ −15</text>
+            <text x="121" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=1.85M</text>
+          </g>
+          <!-- 2) -15 to 0 : 11% (good) -->
+          <g>
+            <rect x="176" y="251" width="70" height="29" fill="#5BB394"/>
+            <text x="211" y="244" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">11%</text>
+            <text x="211" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">−15 to 0</text>
+            <text x="211" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=2.50M</text>
+          </g>
+          <!-- 3) 0 to 15 : 19% (neutral) -->
+          <g>
+            <rect x="266" y="231" width="70" height="49" fill="#B5AE9F"/>
+            <text x="301" y="224" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">19%</text>
+            <text x="301" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">0 to 15</text>
+            <text x="301" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=1.10M</text>
+          </g>
+          <!-- 4) 15 to 30 : 43% (warn-1 orange) -->
+          <g>
+            <rect x="356" y="168" width="70" height="112" fill="#E0A24A"/>
+            <text x="391" y="161" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">43%</text>
+            <text x="391" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">15 to 30</text>
+            <text x="391" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=470k</text>
+          </g>
+          <!-- 5) 30 to 60 : 59% (warn-2 darker orange) -->
+          <g>
+            <rect x="446" y="127" width="70" height="153" fill="#D87B36"/>
+            <text x="481" y="120" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">59%</text>
+            <text x="481" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">30 to 60</text>
+            <text x="481" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=413k</text>
+          </g>
+          <!-- 6) 60 to 120 : 62% (bad red) -->
+          <g>
+            <rect x="536" y="119" width="70" height="161" fill="#B8401E"/>
+            <text x="571" y="112" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">62%</text>
+            <text x="571" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">60 to 120</text>
+            <text x="571" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=292k</text>
+          </g>
+          <!-- 7) >120 : 58% (deepest red) -->
+          <g>
+            <rect x="626" y="129" width="70" height="151" fill="#7C1F0E"/>
+            <text x="661" y="122" text-anchor="middle" font-size="20" font-weight="700" fill="#1A1A1A">58%</text>
+            <text x="661" y="305" text-anchor="middle" font-size="13" fill="#1A1A1A" font-weight="500">&gt; 120</text>
+            <text x="661" y="322" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">n=190k</text>
+            <text x="661" y="338" text-anchor="middle" font-size="9" fill="#8A8578" font-family="JetBrains Mono, monospace" font-style="italic">cancel / re-route bias</text>
+          </g>
+
+          <!-- x axis line and label -->
+          <line x1="62" y1="280" x2="730" y2="280" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="62" y1="40"  x2="62"  y2="280" stroke="#1A1A1A" stroke-width="1"/>
+          <text x="396" y="345" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">PREVIOUS FLIGHT'S ARRIVAL DELAY (MIN)</text>
+        </svg>
+      </figure>
+      <div class="quote">
+        <span class="lead">§ Takeaway</span>
+        When the previous flight is <b>60–120 min late</b>, the next flight has a <b>62%</b> delay rate — versus a <b>10%</b> baseline when on-time.
+        <span class="micro">Aircraft rotation &gt; airline &gt; weather. The strongest single predictor we found.</span>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">07<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 05 · Cascading Delay · 1:00 · ⭐ wow moment</div><p>"This is the single most important chart of our project. On the x-axis: how late was the previous leg of the same aircraft? On the y-axis: how often is the next flight delayed."</p><p>"When the prior leg was on-time or early — the green bars on the left — only about 10% of next flights are delayed. That's below the 20% overall average."</p><p>"But look at what happens when the prior leg was late. A 30-to-60 minute delay on the previous leg pushes the next-flight delay rate up to 59%. A 60-to-120 minute delay pushes it to 62%. So the same plane being late once basically guarantees trouble for its next departure."</p><p>"The takeaway: it's not the airline, it's not the weather, it's the aircraft rotation. Tracking same-tail-number history is the strongest single predictor we found — by a wide margin."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       06 · Temporal — hour line + month bars
+       ============================================================ -->
+  <section class="slide temporal" data-screen-label="08 Temporal Patterns">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · EDA #2</div>
+      <h1 class="h1">Delays build through <em>the day &amp; year.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <!-- LEFT: hour-of-day line + area -->
+      <figure class="frame">
+        <div class="figlabel">Figure 2a · Delay rate by scheduled departure hour</div>
+        <svg viewBox="0 0 540 300" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <!-- y grid: 0..35% -->
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="50" y1="40"  x2="520" y2="40"/>
+            <line x1="50" y1="90"  x2="520" y2="90"/>
+            <line x1="50" y1="140" x2="520" y2="140"/>
+            <line x1="50" y1="190" x2="520" y2="190"/>
+            <line x1="50" y1="240" x2="520" y2="240"/>
+          </g>
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="44" y="44"  text-anchor="end">35%</text>
+            <text x="44" y="94"  text-anchor="end">25%</text>
+            <text x="44" y="144" text-anchor="end">15%</text>
+            <text x="44" y="194" text-anchor="end">5%</text>
+            <text x="44" y="244" text-anchor="end">0%</text>
+          </g>
+          <line x1="50" y1="240" x2="520" y2="240" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="50" y1="40"  x2="50"  y2="240" stroke="#1A1A1A" stroke-width="1"/>
+
+          <!-- 24 hours: x = 50 + i*((520-50)/23) ~ +20.4 each -->
+          <!-- approximate delay rates by hour: 0:24, 1:23, 2:23, 3:22, 4:22, 5:8, 6:8, 7:10, 8:13, 9:15, 10:17, 11:19, 12:20, 13:22, 14:24, 15:25, 16:27, 17:28, 18:29, 19:30, 20:31, 21:30, 22:28, 23:25 -->
+          <!-- y = 240 - rate*5 -->
+          <!-- area fill -->
+          <path d="
+            M 50,120 L 70.4,125 L 90.9,125 L 111.3,130 L 131.7,130 L 152.2,200 L 172.6,200 L 193.0,190 L 213.5,175 L 233.9,165 L 254.3,155 L 274.8,145 L 295.2,140 L 315.7,130 L 336.1,120 L 356.5,115 L 377.0,105 L 397.4,100 L 417.8,95 L 438.3,90 L 458.7,85 L 479.1,90 L 499.6,100 L 520.0,115 L 520.0,240 L 50,240 Z
+          " fill="#2F5C8C" fill-opacity="0.18"/>
+          <!-- line -->
+          <polyline points="
+            50,120 70.4,125 90.9,125 111.3,130 131.7,130 152.2,200 172.6,200 193.0,190 213.5,175 233.9,165 254.3,155 274.8,145 295.2,140 315.7,130 336.1,120 356.5,115 377.0,105 397.4,100 417.8,95 438.3,90 458.7,85 479.1,90 499.6,100 520.0,115
+          " fill="none" stroke="#2F5C8C" stroke-width="2"/>
+          <!-- dots at key points -->
+          <circle cx="152.2" cy="200" r="4.5" fill="#2F8F6F"/>
+          <circle cx="458.7" cy="85"  r="4.5" fill="#B8401E"/>
+
+          <!-- annotation 1: 10% at 5AM (green) -->
+          <g>
+            <line x1="152.2" y1="200" x2="120" y2="225" stroke="#2F8F6F" stroke-width="1"/>
+            <rect x="48" y="226" width="106" height="22" fill="#FBFAF6" stroke="#2F8F6F" stroke-width="1"/>
+            <text x="101" y="241" text-anchor="middle" font-size="12" fill="#2F8F6F" font-weight="700">10% at 5 AM</text>
+          </g>
+          <!-- annotation 2: 28% at 8PM (red) -->
+          <g>
+            <line x1="458.7" y1="85" x2="430" y2="58" stroke="#B8401E" stroke-width="1"/>
+            <rect x="370" y="42" width="118" height="22" fill="#FBFAF6" stroke="#B8401E" stroke-width="1"/>
+            <text x="429" y="58" text-anchor="middle" font-size="12" fill="#B8401E" font-weight="700">28% at 8 PM</text>
+          </g>
+
+          <!-- x labels: 0,3,6,9,12,15,18,21 -->
+          <g fill="#1A1A1A" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="50"  y="258" text-anchor="middle">0</text>
+            <text x="111" y="258" text-anchor="middle">3</text>
+            <text x="172" y="258" text-anchor="middle">6</text>
+            <text x="233" y="258" text-anchor="middle">9</text>
+            <text x="295" y="258" text-anchor="middle">12</text>
+            <text x="356" y="258" text-anchor="middle">15</text>
+            <text x="417" y="258" text-anchor="middle">18</text>
+            <text x="478" y="258" text-anchor="middle">21</text>
+          </g>
+          <text x="285" y="282" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">SCHEDULED DEPARTURE HOUR</text>
+        </svg>
+      </figure>
+
+      <!-- RIGHT: monthly bars -->
+      <figure class="frame">
+        <div class="figlabel">Figure 2b · Delay rate by month of 2024</div>
+        <svg viewBox="0 0 540 300" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="50" y1="40"  x2="520" y2="40"/>
+            <line x1="50" y1="90"  x2="520" y2="90"/>
+            <line x1="50" y1="140" x2="520" y2="140"/>
+            <line x1="50" y1="190" x2="520" y2="190"/>
+            <line x1="50" y1="240" x2="520" y2="240"/>
+          </g>
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="44" y="44"  text-anchor="end">30%</text>
+            <text x="44" y="94"  text-anchor="end">22%</text>
+            <text x="44" y="144" text-anchor="end">15%</text>
+            <text x="44" y="194" text-anchor="end">8%</text>
+            <text x="44" y="244" text-anchor="end">0%</text>
+          </g>
+          <line x1="50" y1="240" x2="520" y2="240" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="50" y1="40"  x2="50"  y2="240" stroke="#1A1A1A" stroke-width="1"/>
+          <!-- bars: 12 months, each ~32 wide, gap ~6 -->
+          <!-- rates approx 1:23, 2:15, 3:21, 4:19, 5:25, 6:25, 7:29, 8:23, 9:15, 10:13, 11:14, 12:21 -->
+          <!-- y = 240 - rate*(200/30) = 240 - rate*6.67 -->
+          <g>
+            <!-- 1 winter blue -->
+            <rect x="62"  y="87"  width="32" height="153" fill="#2F5C8C"/>
+            <!-- 2 winter blue -->
+            <rect x="100" y="140" width="32" height="100" fill="#2F5C8C"/>
+            <!-- 3 other neutral -->
+            <rect x="138" y="100" width="32" height="140" fill="#B5AE9F"/>
+            <!-- 4 other -->
+            <rect x="176" y="113" width="32" height="127" fill="#B5AE9F"/>
+            <!-- 5 other -->
+            <rect x="214" y="73"  width="32" height="167" fill="#B5AE9F"/>
+            <!-- 6 summer red -->
+            <rect x="252" y="73"  width="32" height="167" fill="#B8401E"/>
+            <!-- 7 summer red -->
+            <rect x="290" y="47"  width="32" height="193" fill="#B8401E"/>
+            <!-- 8 summer red -->
+            <rect x="328" y="87"  width="32" height="153" fill="#B8401E"/>
+            <!-- 9 other -->
+            <rect x="366" y="140" width="32" height="100" fill="#B5AE9F"/>
+            <!-- 10 other -->
+            <rect x="404" y="153" width="32" height="87"  fill="#B5AE9F"/>
+            <!-- 11 other -->
+            <rect x="442" y="147" width="32" height="93"  fill="#B5AE9F"/>
+            <!-- 12 winter blue -->
+            <rect x="480" y="100" width="32" height="140" fill="#2F5C8C"/>
+          </g>
+          <!-- x labels months -->
+          <g fill="#1A1A1A" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="78"  y="258" text-anchor="middle">1</text>
+            <text x="116" y="258" text-anchor="middle">2</text>
+            <text x="154" y="258" text-anchor="middle">3</text>
+            <text x="192" y="258" text-anchor="middle">4</text>
+            <text x="230" y="258" text-anchor="middle">5</text>
+            <text x="268" y="258" text-anchor="middle">6</text>
+            <text x="306" y="258" text-anchor="middle">7</text>
+            <text x="344" y="258" text-anchor="middle">8</text>
+            <text x="382" y="258" text-anchor="middle">9</text>
+            <text x="420" y="258" text-anchor="middle">10</text>
+            <text x="458" y="258" text-anchor="middle">11</text>
+            <text x="496" y="258" text-anchor="middle">12</text>
+          </g>
+          <text x="285" y="282" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">MONTH OF 2024</text>
+        </svg>
+        <div class="legend">
+          <span><span class="sw" style="background:#B8401E"></span>Summer (Jun–Aug)</span>
+          <span><span class="sw" style="background:#2F5C8C"></span>Winter (Dec–Feb)</span>
+          <span><span class="sw" style="background:#B5AE9F"></span>Other</span>
+        </div>
+      </figure>
+    </div>
+    <p class="dow-callout"><b>Day of week.</b> Tuesday is the most reliable day · <b>Friday &amp; Sunday</b> the worst — business commute timing, leisure peaks, and weekend crew rotation compound.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">08<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 06 · Temporal · 0:40</div><p>"Two clear temporal patterns. On the left: as the day goes on, delay rates climb steadily — from about 10% for the earliest morning flights to nearly 30% for evening departures. That's the same cascading effect we just saw, but aggregated across the system: the longer the operational day runs, the more accumulated disruption."</p><p>"On the right: delay rate by month. Most people guess winter is the worst because of snow — but actually summer is significantly worse. June, July, August are the red bars. The driver is convective weather: thunderstorms are short, intense, and harder to plan around than scheduled snow events. And summer is also peak travel volume."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       07 · Weather — wind + precip
+       ============================================================ -->
+  <section class="slide weather" data-screen-label="09 Weather">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · EDA #3</div>
+      <h1 class="h1">Bad weather <em>roughly doubles</em> the delay rate.</h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <!-- WIND -->
+      <figure class="frame">
+        <div class="figlabel">Figure 3a · Delay rate by wind speed (m/s)</div>
+        <span class="mono-tag">monotonic ↑</span>
+        <svg viewBox="0 0 540 300" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="60" y1="40"  x2="520" y2="40"/>
+            <line x1="60" y1="90"  x2="520" y2="90"/>
+            <line x1="60" y1="140" x2="520" y2="140"/>
+            <line x1="60" y1="190" x2="520" y2="190"/>
+            <line x1="60" y1="240" x2="520" y2="240"/>
+          </g>
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="54" y="44"  text-anchor="end">35%</text>
+            <text x="54" y="94"  text-anchor="end">26%</text>
+            <text x="54" y="144" text-anchor="end">18%</text>
+            <text x="54" y="194" text-anchor="end">9%</text>
+            <text x="54" y="244" text-anchor="end">0%</text>
+          </g>
+          <line x1="60" y1="240" x2="520" y2="240" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="60" y1="40"  x2="60"  y2="240" stroke="#1A1A1A" stroke-width="1"/>
+
+          <!-- 5 bars; gradient lightest → deepest blue -->
+          <!-- y = 240 - rate*(200/35) = 240 - rate*5.71 -->
+          <g>
+            <rect x="80"  y="137" width="78" height="103" fill="#C9DAEF"/>
+            <text x="119" y="130" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">18%</text>
+            <rect x="170" y="120" width="78" height="120" fill="#9AB7D8"/>
+            <text x="209" y="113" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">21%</text>
+            <rect x="260" y="103" width="78" height="137" fill="#6F92BF"/>
+            <text x="299" y="96"  text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">24%</text>
+            <rect x="350" y="86"  width="78" height="154" fill="#3E6EA3"/>
+            <text x="389" y="79"  text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">27%</text>
+            <rect x="440" y="46"  width="78" height="194" fill="#011F5B"/>
+            <text x="479" y="39"  text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">34%</text>
+          </g>
+          <!-- baseline ~21% -->
+          <line x1="60" y1="120" x2="520" y2="120" stroke="#8A8578" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="514" y="115" text-anchor="end" font-size="10" font-style="italic" fill="#8A8578">baseline ≈ 21%</text>
+
+          <g fill="#1A1A1A" font-size="11" font-family="JetBrains Mono, monospace">
+            <text x="119" y="258" text-anchor="middle">0–2</text>
+            <text x="209" y="258" text-anchor="middle">2–5</text>
+            <text x="299" y="258" text-anchor="middle">5–8</text>
+            <text x="389" y="258" text-anchor="middle">8–12</text>
+            <text x="479" y="258" text-anchor="middle">&gt;12</text>
+          </g>
+          <text x="290" y="282" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">WIND SPEED (m/s)</text>
+        </svg>
+      </figure>
+
+      <!-- PRECIP -->
+      <figure class="frame">
+        <div class="figlabel">Figure 3b · Delay rate by hourly precipitation (mm)</div>
+        <span class="mono-tag">monotonic ↑</span>
+        <svg viewBox="0 0 540 300" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="60" y1="40"  x2="520" y2="40"/>
+            <line x1="60" y1="90"  x2="520" y2="90"/>
+            <line x1="60" y1="140" x2="520" y2="140"/>
+            <line x1="60" y1="190" x2="520" y2="190"/>
+            <line x1="60" y1="240" x2="520" y2="240"/>
+          </g>
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="54" y="44"  text-anchor="end">50%</text>
+            <text x="54" y="94"  text-anchor="end">37%</text>
+            <text x="54" y="144" text-anchor="end">25%</text>
+            <text x="54" y="194" text-anchor="end">12%</text>
+            <text x="54" y="244" text-anchor="end">0%</text>
+          </g>
+          <line x1="60" y1="240" x2="520" y2="240" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="60" y1="40"  x2="60"  y2="240" stroke="#1A1A1A" stroke-width="1"/>
+
+          <!-- y = 240 - rate*(200/50) = 240 - rate*4 -->
+          <g>
+            <rect x="80"  y="156" width="78" height="84"  fill="#CFE6D8"/>
+            <text x="119" y="149" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">21%</text>
+            <rect x="170" y="136" width="78" height="104" fill="#5BB394"/>
+            <text x="209" y="129" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">26%</text>
+            <rect x="260" y="120" width="78" height="120" fill="#E0A24A"/>
+            <text x="299" y="113" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">30%</text>
+            <rect x="350" y="116" width="78" height="124" fill="#D87B36"/>
+            <text x="389" y="109" text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">31%</text>
+            <rect x="440" y="48"  width="78" height="192" fill="#B8401E"/>
+            <text x="479" y="41"  text-anchor="middle" font-size="18" font-weight="700" fill="#1A1A1A">48%</text>
+          </g>
+          <!-- baseline ~21% -->
+          <line x1="60" y1="156" x2="520" y2="156" stroke="#8A8578" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="514" y="151" text-anchor="end" font-size="10" font-style="italic" fill="#8A8578">baseline ≈ 21%</text>
+
+          <g fill="#1A1A1A" font-size="11" font-family="JetBrains Mono, monospace">
+            <text x="119" y="258" text-anchor="middle">0</text>
+            <text x="209" y="258" text-anchor="middle">0–0.5</text>
+            <text x="299" y="258" text-anchor="middle">0.5–2</text>
+            <text x="389" y="258" text-anchor="middle">2–10</text>
+            <text x="479" y="258" text-anchor="middle">&gt;10</text>
+          </g>
+          <text x="290" y="282" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">HOURLY PRECIPITATION (mm)</text>
+        </svg>
+      </figure>
+    </div>
+    <p class="weather-caveat"><b>Weather coverage.</b> NOAA ISD-Lite ≈ 80% of flights at top-50 airports. Remaining ~20% retain full flight features (no weather imputation).</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">09<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 07 · Weather · 0:40</div><p>"Weather matters too. On the left, wind speed: as wind picks up, delay rate climbs from 18% in calm conditions to 34% with strong winds. On the right, precipitation: light rain barely moves the needle, but heavy rain — over 10 millimeters per hour — pushes delay rate to 48%, more than double the baseline."</p><p>"Both effects are monotonic and substantial. But — and this is the punchline — weather still ranks behind cascading delays in our final model. The reason is that bad weather days affect every flight, so the relative signal is smaller than knowing one specific aircraft is having a bad day."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       10 · Airline Reliability — ranked + distribution shape
+       ============================================================ -->
+  <section class="slide airline" data-screen-label="10 Airline Reliability">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · EDA #4</div>
+      <h1 class="h1">Airline reliability — <em>budget vs. legacy.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · ranked delay rate per carrier (n weighted)</span>
+        <img src="figs/fig_main_02_cell030.png" alt="Per-airline delay rate ranking">
+      </figure>
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · per-airline delay-minute KDE — distribution shape</span>
+        <img src="figs/fig_eda_02_cell054.png" alt="Per-airline delay distribution ridgeline">
+      </figure>
+    </div>
+    <p class="takeaway">Budget carriers — <b>F9 · NK · G4</b> — sit ~5.4 pp above legacy <b>DL · UA · AA</b>. Beyond rate, distribution <b>shape</b> differs: some carriers' tails extend much further right — a tail-risk signal binary classification under-uses.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">10<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 10 · Airlines · 0:35</div><p>"Two views of the airline dimension. Left: each carrier's average delay rate, sorted. Frontier, Spirit, and Allegiant sit at the top — the budget carriers. Delta, United, American at the bottom. The 5.4 percentage-point spread is what we statistically validate on the next slide."</p><p>"Right is more interesting — distribution shape, not just rate. Ridgeline plot of delay minutes per airline. Some airlines have heavier right tails than others. This isn't captured by the binary 'is delayed' target. Future work could use distributional metrics like KS-test or quantile loss to model tail risk for insurance applications."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       08 · Hypothesis Tests (4 cards)
+       ============================================================ -->
+  <section class="slide hyp" data-screen-label="11 Hypothesis Tests">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · Statistical Validation</div>
+      <h1 class="h1">All four tests reject H<sub class="m">0</sub> at <em>α = 0.05.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="tag">Test · 01</div>
+        <h3 class="question">Budget vs.<br>Legacy carriers</h3>
+        <div class="effect">+5.4<sub>pp</sub></div>
+        <div class="method">Permutation test<br>B = 10,000</div>
+        <div class="pval">p &lt; 0.0001</div>
+        <div class="nrow">n<sub>budget</sub> = 1.4M · n<sub>legacy</sub> = 3.8M</div>
+      </div>
+      <div class="card">
+        <div class="tag">Test · 02</div>
+        <h3 class="question">Summer vs.<br>Winter</h3>
+        <div class="effect">−5.8<sub>pp</sub></div>
+        <div class="method">Bootstrap CI<br>B = 10,000</div>
+        <div class="pval">p &lt; 0.0001</div>
+        <div class="nrow">n<sub>summer</sub> = 1.7M · n<sub>winter</sub> = 1.5M</div>
+      </div>
+      <div class="card">
+        <div class="tag">Test · 03</div>
+        <h3 class="question">Hub vs.<br>Non-hub</h3>
+        <div class="effect">+1.9<sub>pp</sub></div>
+        <div class="method">Permutation test<br>B = 10,000</div>
+        <div class="pval">p &lt; 0.0001</div>
+        <div class="nrow">n<sub>hub</sub> = 4.0M · n<sub>non</sub> = 2.7M</div>
+      </div>
+      <div class="card">
+        <div class="tag">Test · 04</div>
+        <h3 class="question">Adverse weather<br>vs. Clear</h3>
+        <div class="effect">χ<sup class="m">2</sup><sub>1</sub>=15,009</div>
+        <div class="method">Monte Carlo χ<sup class="m">2</sup><br>B = 10,000</div>
+        <div class="pval">p &lt; 0.0001</div>
+        <div class="nrow">n = 5.4M (full) · 522.8 on 500k sub-sample</div>
+      </div>
+    </div>
+    <p class="takeaway-line">All effects are <b>practically significant</b> — budget carriers, summer travel, hubs, and adverse weather each measurably hurt on-time performance.</p>
+    <p class="hyp-foot"><b>Note.</b> Effect sizes are absolute differences in delay rate (percentage points). χ<sup class="m">2</sup> df = 1 for the 2 × 2 weather × delay table. All p-values from B = 10,000 simulation draws.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">11<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 08 · Hypothesis Tests · 0:50</div><p>"We backed up the EDA findings with four formal hypothesis tests, all using simulation methods."</p><p>"Test 1: budget carriers like Spirit and Frontier delay 5.4 percentage points more than legacy carriers like Delta and United — permutation test, ten thousand iterations, p less than one in ten thousand."</p><p>"Test 2: summer is 5.8 points worse than winter, validated with a bootstrap confidence interval that doesn't include zero."</p><p>"Test 3: hub airports delay 1.9 points more than non-hubs — small but real."</p><p>"Test 4: a chi-squared test on adverse weather versus delay using Monte Carlo for the null. The chi-squared statistic is over 15,000."</p><p>"All four reject the null. The patterns we saw in EDA aren't noise."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       12 · Null Distributions — visual proof
+       ============================================================ -->
+  <section class="slide nullsim" data-screen-label="12 Null Distributions">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 03 · Statistical Validation · Visual</div>
+      <h1 class="h1">Where the observed effects fall — <em>far outside the null.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="body">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · hypothesis_testing notebook · 4 simulated null distributions · observed in red</span>
+        <img src="figs/fig_hypo_05_cell022.png" alt="4 hypothesis test null distributions">
+      </figure>
+    </div>
+    <div class="legend">
+      <div class="item">
+        <div class="ttl">T1 · Carrier</div>
+        <div class="desc">Permutation B=10k · obs +5.4 pp</div>
+      </div>
+      <div class="item">
+        <div class="ttl">T2 · Season</div>
+        <div class="desc">Bootstrap CI · obs −5.8 pp · CI excludes 0</div>
+      </div>
+      <div class="item">
+        <div class="ttl">T3 · Hub</div>
+        <div class="desc">Permutation B=10k · obs +1.9 pp</div>
+      </div>
+      <div class="item">
+        <div class="ttl">T4 · Weather</div>
+        <div class="desc">Monte-Carlo χ<sup class="m">2</sup> · obs ≫ simulated null</div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">12<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 12 · Null Distributions · 0:30</div><p>"The visual proof of what the previous slide claimed. Each gray histogram is the simulated null distribution — what we'd expect by chance under no effect. The red line is the observed value from real data."</p><p>"Notice that in every panel, the red line is far outside the gray support — there's no overlap. That's why all four p-values are less than 1 in 10,000. These aren't marginal results."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       09 · Modeling Approach — was originally slide 9
+       ============================================================ -->
+  <section class="slide modeling" data-screen-label="13 Modeling Approach">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Modeling</div>
+      <h1 class="h1">Predicting delay <em>≥ 15 min</em> — before takeoff.</h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="body">
+      <ul>
+        <li><span><b>Target.</b> <code>DepDel15</code> — binary, delayed at least 15 min.</span></li>
+        <li><span><b>Split.</b> Temporal — never random — prevents rolling-feature leakage.</span></li>
+        <li><span><b>Features.</b> 23 engineered → <b>74 columns</b> after one-hot, 8 categories.</span></li>
+        <li><span><b>Anti-leakage.</b> All rolling features use <code>shift(1)</code> — only past feeds today.</span></li>
+        <li><span><b>Models.</b> SGD-Logit → Random Forest → XGBoost / LightGBM (best params: <code>n_estimators=400 · max_depth=6 · lr=0.05</code>).</span></li>
+        <li><span><b>Tuning.</b> RandomizedSearchCV — 30 configs · 3-fold CV · 500k subsample (Δ AUC vs full 5.6M &lt; 0.002).</span></li>
+      </ul>
+      <div class="timeline">
+        <div class="timeline-label">Temporal split — 2024 calendar · <span class="shift-tag">delay rate: train 21.0% → test 17.9% (mild OOT shift)</span></div>
+        <div class="tl-bars">
+          <div class="bar train">Jan – Oct · Train · 5.6M flights</div>
+          <div class="bar test">Nov – Dec · Test · 1.13M</div>
+        </div>
+        <div class="tl-axis">
+          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+        </div>
+        <div class="tl-meta">RANDOM_STATE=42 · Code: github.com/trumpool/CIS-5450</div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">13<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 09 · Modeling Approach · 0:45</div><p>"Now to the modeling. We treat this as binary classification: will the flight be delayed by at least 15 minutes?"</p><p>"The most important design choice is the train-test split. We don't use random splitting — we split temporally. Train on January through October, test on November and December. Random splitting would let the model peek at future information through our rolling-history features, which would inflate scores artificially."</p><p>"We engineered 23 features across 8 categories — time-of-day, holidays, hub indicators, rolling delay rates, the cascading prior-flight delay, congestion, and weather. Critically, all rolling features use shift(1) before the rolling window, so today's target never leaks into today's feature."</p><p>"We benchmarked a series of models — Logistic Regression as baseline, then Random Forest, then XGBoost and LightGBM."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       14 · Baseline → Advanced ROC Comparison
+       ============================================================ -->
+  <section class="slide modeldetail" data-screen-label="14 ROC Ladder">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Model Ladder</div>
+      <h1 class="h1">Climbing the ladder: <em>0.50 → 0.82 AUC.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · advanced_model step 7 · ROC curves overlay · all classifiers</span>
+        <img src="figs/fig_advanced_01_cell020.png" alt="ROC curves all advanced models">
+      </figure>
+      <div class="panel">
+        <h4>Successive AUC gains <em>diminish at the GBDT plateau.</em></h4>
+        <ul>
+          <li><b>Naive (always on-time)</b> — accuracy 82.1%, AUC 0.500. Useless.</li>
+          <li><b>SGD Logistic</b> — first real signal, AUC <code>0.757</code>. Linear ceiling.</li>
+          <li><b>Random Forest</b> — depth-18 · 200 trees · AUC <code>0.806</code>.</li>
+          <li><b>XGBoost (weighted)</b> — AUC <code>0.811</code>. F1 0.580.</li>
+          <li><b>LightGBM (weighted)</b> — AUC <code>0.815</code>. F1 0.578.</li>
+          <li><b>XGBoost (tuned)</b> — AUC <code>0.817</code>. F1 0.586. <em>best</em></li>
+        </ul>
+        <div class="keynum">
+          <div class="lab">Plateau</div>
+          <div class="v">0.005<small>AUC spread across 4 GBDT variants</small></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">14<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 14 · ROC ladder · 0:45</div><p>"This is the model ladder. The naive baseline that always predicts on-time gets 82 percent accuracy but AUC of 0.5 — it never catches a delay. SGD logistic gives our first real signal at 0.757. Random forest jumps to 0.806. XGBoost and LightGBM both around 0.81 to 0.82."</p><p>"Notice how the four GBDT variants are within 0.005 AUC of each other. We've hit a plateau where additional model complexity gets diminishing returns. The next two slides explore what we can still do — class imbalance handling and threshold tuning — before settling on the final tuned XGBoost."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       15 · Imbalance handling — SMOTE vs class weights
+       ============================================================ -->
+  <section class="slide modeldetail" data-screen-label="15 SMOTE vs Weighted">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Imbalance Handling</div>
+      <h1 class="h1">SMOTE oversampling vs <em>class weights</em> — recall wins.</h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · advanced_model step 9 · confusion matrices · weighted (left) vs SMOTE (right)</span>
+        <img src="figs/fig_advanced_03_cell024.png" alt="Confusion matrix comparison weighted vs SMOTE">
+      </figure>
+      <div class="panel">
+        <h4>SMOTE inflates <em>precision</em>, but at a steep recall cost.</h4>
+        <ul>
+          <li><b>Weighted XGB</b> — <code>scale_pos_weight = 3.76</code>. P 0.609 · R 0.553 · <b>F1 0.580</b>.</li>
+          <li><b>SMOTE XGB</b> — oversample 500k → 789,958. P 0.809 · R 0.415 · <b>F1 0.549</b>.</li>
+          <li>SMOTE-style synthetic minority points <b>can't fabricate</b> realistic operational context — model becomes overconfident on its training-set neighbors.</li>
+          <li>Class-weight wins on recall <b>and</b> on F1 at much lower train cost (4 s vs 8 s).</li>
+        </ul>
+        <div class="keynum">
+          <div class="lab">F1 delta</div>
+          <div class="v">+0.037<small>weighted over SMOTE</small></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">15<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 15 · SMOTE comparison · 0:35</div><p>"Two ways to handle 80:20 imbalance — re-weight the loss function with scale-pos-weight, or oversample the minority class with SMOTE."</p><p>"SMOTE pushes precision up to 0.81 — when it predicts delay, it's right four times out of five. But recall collapses to 0.42 — it only catches 42 percent of actual delays. Class weighting catches 55 percent at precision 0.61. Net F1 is 4 points higher for class weighting."</p><p>"The reason is that SMOTE's synthetic minority points can't capture operational context — flights aren't k-nearest-neighbor interpolations. Class weighting just shifts the loss balance without inventing data, which is the more conservative move."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       16 · Hyperparameter Tuning — RandomizedSearchCV
+       ============================================================ -->
+  <section class="slide modeldetail" data-screen-label="16 Hyperparameter Tuning">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Hyperparameter Tuning</div>
+      <h1 class="h1">RandomizedSearchCV — <em>30 configs × 3-fold CV.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · tuning_optimization step 9 · top-10 configurations for XGBoost · LightGBM</span>
+        <img src="figs/fig_tuning_04_cell024.png" alt="CV search top configurations">
+      </figure>
+      <div class="panel">
+        <h4>Search space and the <em>chosen</em> XGBoost config.</h4>
+        <ul>
+          <li><code>n_estimators</code> ∈ [200, 800] — best <b>400</b></li>
+          <li><code>max_depth</code> ∈ [4, 10] — best <b>6</b></li>
+          <li><code>learning_rate</code> ∈ [0.01, 0.20] — best <b>0.05</b></li>
+          <li><code>min_child_weight</code> ∈ [1, 10] — best <b>5</b></li>
+          <li><code>subsample</code> ∈ [0.6, 1.0] — best <b>0.8</b></li>
+          <li><code>colsample_bytree</code> ∈ [0.6, 1.0] — best <b>0.7</b></li>
+          <li><code>reg_lambda</code> ∈ [0.5, 4.0] — best <b>2.0</b></li>
+        </ul>
+        <div class="keynum">
+          <div class="lab">Search outcome</div>
+          <div class="v">±0.002<small>top-10 AUC spread — robust plateau</small></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">16<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 16 · Hyperparameter tuning · 0:30</div><p>"Hyperparameter tuning. We used RandomizedSearchCV — 30 random draws from a 7-dimensional space, scored by ROC-AUC under 3-fold cross-validation on the 500k stratified subsample."</p><p>"Best config landed at 400 trees, depth 6, learning rate 0.05. The interesting result is robustness — the top 10 configurations all sit within 0.002 AUC of each other. We're on a plateau, not a sharp peak. Additional search would have diminishing returns."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       17 · Threshold Optimization
+       ============================================================ -->
+  <section class="slide modeldetail" data-screen-label="17 Threshold Tuning">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Threshold Tuning</div>
+      <h1 class="h1">Operating point: <em>0.50 → 0.573.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="figbox-fr">
+        <span class="figcap-inline">Figure · tuning_optimization step 6 · PR curve · F1 vs t · P/R vs t</span>
+        <img src="figs/fig_tuning_01_cell018.png" alt="PR curve and threshold optimization">
+      </figure>
+      <div class="panel">
+        <h4>Sweep argmax F1 across the PR curve.</h4>
+        <ul>
+          <li><b>Default t = 0.500</b> — P 0.586 · R 0.573 · F1 <code>0.580</code>.</li>
+          <li><b>Optimal t = 0.573</b> — P 0.663 · R 0.525 · F1 <code>0.586</code>.</li>
+          <li>Threshold lands <i>above</i> 0.5 because the model is well-calibrated and slightly conservative on the positive class after class-weighting.</li>
+          <li>~14k borderline alerts shift positive→negative — trade <b>5 pp</b> recall for <b>8 pp</b> precision.</li>
+        </ul>
+        <div class="keynum">
+          <div class="lab">Best F1</div>
+          <div class="v">0.586<small>at t = 0.573</small></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">17<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 17 · Threshold tuning · 0:30</div><p>"The last lever before final evaluation: the classification threshold. By default we threshold predicted probability at 0.5. We swept all thresholds from the precision-recall curve and picked the one that maximizes F1."</p><p>"Optimal threshold lands at 0.573 — slightly above 0.5. The reason is subtle: after class-weighting, the model is well-calibrated and slightly conservative on the positive class, so a higher threshold actually picks out more confident predictions. F1 climbs from 0.580 to 0.586."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       10 · Model Performance ⭐
+       ============================================================ -->
+  <section class="slide perf" data-screen-label="18 Model Performance">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Results</div>
+      <h1 class="h1">From AUC <em>0.50</em> → <em>0.82.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <!-- LEFT: ROC overlay -->
+      <figure class="frame">
+        <div class="figlabel">Figure 4a · ROC curves — 5 models on Nov–Dec test set</div>
+        <svg viewBox="0 0 540 320" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <!-- chart area: x=60..520 (460), y=40..280 (240) -->
+          <!-- gridlines -->
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="60" y1="40"  x2="520" y2="40"/>
+            <line x1="60" y1="100" x2="520" y2="100"/>
+            <line x1="60" y1="160" x2="520" y2="160"/>
+            <line x1="60" y1="220" x2="520" y2="220"/>
+            <line x1="60" y1="280" x2="520" y2="280"/>
+            <line x1="60"  y1="40" x2="60"  y2="280"/>
+            <line x1="175" y1="40" x2="175" y2="280"/>
+            <line x1="290" y1="40" x2="290" y2="280"/>
+            <line x1="405" y1="40" x2="405" y2="280"/>
+            <line x1="520" y1="40" x2="520" y2="280"/>
+          </g>
+          <line x1="60" y1="280" x2="520" y2="280" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="60" y1="40"  x2="60"  y2="280" stroke="#1A1A1A" stroke-width="1"/>
+          <!-- y axis labels (TPR) -->
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="54" y="44"  text-anchor="end">1.0</text>
+            <text x="54" y="104" text-anchor="end">0.75</text>
+            <text x="54" y="164" text-anchor="end">0.50</text>
+            <text x="54" y="224" text-anchor="end">0.25</text>
+            <text x="54" y="284" text-anchor="end">0.0</text>
+          </g>
+          <!-- x axis labels (FPR) -->
+          <g fill="#1A1A1A" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="60"  y="296" text-anchor="middle">0.0</text>
+            <text x="175" y="296" text-anchor="middle">0.25</text>
+            <text x="290" y="296" text-anchor="middle">0.50</text>
+            <text x="405" y="296" text-anchor="middle">0.75</text>
+            <text x="520" y="296" text-anchor="middle">1.0</text>
+          </g>
+          <text x="20" y="160" font-size="10" fill="#011F5B" font-weight="600" letter-spacing="0.18em" transform="rotate(-90 20 160)">TRUE POSITIVE RATE</text>
+          <text x="290" y="312" text-anchor="middle" font-size="10" fill="#011F5B" font-weight="600" letter-spacing="0.18em">FALSE POSITIVE RATE</text>
+
+          <!-- diagonal random reference -->
+          <line x1="60" y1="280" x2="520" y2="40" stroke="#B8401E" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="514" y="56" text-anchor="end" font-size="9.5" font-style="italic" fill="#B8401E">Random AUC = 0.500</text>
+
+          <!-- ROC curves: parametric concave curves passing through (0,0) and (1,1) with given AUC.
+               Using f(x) = x^((1-A)/A) where A is AUC for x in [0,1], approximate proper concave.
+               We sample 21 points per curve for smoothness. Since SVG is hand-drawn, approximate with bezier.
+               Chart maps: x_pix = 60 + fpr*460; y_pix = 280 - tpr*240. -->
+          <!-- LR AUC=0.757 -->
+          <path d="M 60,280 C 100,180 175,110 290,80 C 360,62 440,48 520,40" fill="none" stroke="#3E6EA3" stroke-width="1.6"/>
+          <!-- RF AUC=0.806 -->
+          <path d="M 60,280 C 92,148 165,86 290,64 C 355,53 440,44 520,40" fill="none" stroke="#2F5C8C" stroke-width="1.6"/>
+          <!-- XGB-w AUC=0.811 -->
+          <path d="M 60,280 C 90,140 162,80 290,60 C 355,50 440,44 520,40" fill="none" stroke="#011F5B" stroke-width="1.6"/>
+          <!-- LGB-w AUC=0.815 -->
+          <path d="M 60,280 C 88,134 158,76 290,58 C 355,48 440,42 520,40" fill="none" stroke="#011F5B" stroke-width="1.6" stroke-dasharray="3 3"/>
+          <!-- XGB-tuned AUC=0.817 (best) -->
+          <path d="M 60,280 C 84,124 152,68 290,52 C 350,46 438,42 520,40" fill="none" stroke="#2F8F6F" stroke-width="2.2"/>
+
+          <!-- operating point on tuned curve at threshold=0.573: FPR ≈ 0.058, TPR = 0.5252 -->
+          <!-- x = 60 + 0.058*460 = 86.7 ; y = 280 - 0.5252*240 = 153.9 -->
+          <circle cx="86.7" cy="153.9" r="4" fill="#990000" stroke="#FBFAF6" stroke-width="1.4"/>
+          <line x1="86.7" y1="153.9" x2="160" y2="180" stroke="#990000" stroke-width="0.8"/>
+          <rect x="160" y="170" width="158" height="22" fill="#FBFAF6" stroke="#990000" stroke-width="1"/>
+          <text x="239" y="184" text-anchor="middle" font-size="10.5" fill="#990000" font-weight="600">t = 0.573 → R 0.525, P 0.663</text>
+
+          <!-- Legend bottom-right inside frame -->
+          <g font-size="10" font-family="JetBrains Mono, monospace">
+            <rect x="335" y="200" width="178" height="76" fill="#FBFAF6" stroke="#C9C2B0" stroke-width="0.5"/>
+            <line x1="345" y1="212" x2="365" y2="212" stroke="#3E6EA3" stroke-width="1.6"/>
+            <text x="370" y="216" fill="#1A1A1A">Logistic       0.757</text>
+            <line x1="345" y1="226" x2="365" y2="226" stroke="#2F5C8C" stroke-width="1.6"/>
+            <text x="370" y="230" fill="#1A1A1A">Random Forest  0.806</text>
+            <line x1="345" y1="240" x2="365" y2="240" stroke="#011F5B" stroke-width="1.6"/>
+            <text x="370" y="244" fill="#1A1A1A">XGBoost   (w)  0.811</text>
+            <line x1="345" y1="254" x2="365" y2="254" stroke="#011F5B" stroke-width="1.6" stroke-dasharray="3 3"/>
+            <text x="370" y="258" fill="#1A1A1A">LightGBM  (w)  0.815</text>
+            <line x1="345" y1="268" x2="365" y2="268" stroke="#2F8F6F" stroke-width="2.2"/>
+            <text x="370" y="272" fill="#2F8F6F" font-weight="700">XGBoost tuned  0.817</text>
+          </g>
+        </svg>
+      </figure>
+
+      <!-- RIGHT: confusion matrix + per-class metrics -->
+      <figure class="frame">
+        <div class="figlabel">Figure 4b · Confusion matrix · tuned XGBoost @ t = 0.573 · n = 1,132,744</div>
+        <svg viewBox="0 0 540 320" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <!-- 2x2 grid centered, 4 cells: each 160w x 100h, total 320x200, anchored top-left at (130,40) -->
+          <!-- Top labels (predicted) -->
+          <text x="290" y="32" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">PREDICTED</text>
+          <text x="210" y="56" text-anchor="middle" font-size="10.5" fill="#1A1A1A" font-weight="600">On-time</text>
+          <text x="370" y="56" text-anchor="middle" font-size="10.5" fill="#1A1A1A" font-weight="600">Delay</text>
+          <!-- Side labels (actual) -->
+          <text x="32" y="170" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em" transform="rotate(-90 32 170)">ACTUAL</text>
+          <text x="65"  y="120" text-anchor="end" font-size="10.5" fill="#1A1A1A" font-weight="600">On-time</text>
+          <text x="65"  y="220" text-anchor="end" font-size="10.5" fill="#1A1A1A" font-weight="600">Delay</text>
+
+          <!-- TN cell: actual on-time, pred on-time : 876,043 (good - green tint) -->
+          <rect x="130" y="62" width="160" height="100" fill="#CFE6D8" stroke="#2F8F6F" stroke-width="1"/>
+          <text x="210" y="100" text-anchor="middle" font-size="10" fill="#2F8F6F" font-weight="600" letter-spacing="0.16em">TRUE NEGATIVE</text>
+          <text x="210" y="128" text-anchor="middle" font-size="32" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif" font-variant-numeric="lining-nums">876,043</text>
+          <text x="210" y="150" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">77.3%</text>
+
+          <!-- FP cell: actual on-time, pred delay : 54,166 (warn - yellow tint) -->
+          <rect x="290" y="62" width="160" height="100" fill="#F5E0BC" stroke="#E0A24A" stroke-width="1"/>
+          <text x="370" y="100" text-anchor="middle" font-size="10" fill="#D87B36" font-weight="600" letter-spacing="0.16em">FALSE POSITIVE</text>
+          <text x="370" y="128" text-anchor="middle" font-size="32" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif" font-variant-numeric="lining-nums">54,166</text>
+          <text x="370" y="150" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">4.8%</text>
+
+          <!-- FN cell: actual delay, pred on-time : 96,163 (bad - red tint) -->
+          <rect x="130" y="162" width="160" height="100" fill="#F4D5C9" stroke="#B8401E" stroke-width="1"/>
+          <text x="210" y="200" text-anchor="middle" font-size="10" fill="#B8401E" font-weight="600" letter-spacing="0.16em">FALSE NEGATIVE</text>
+          <text x="210" y="228" text-anchor="middle" font-size="32" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif" font-variant-numeric="lining-nums">96,163</text>
+          <text x="210" y="250" text-anchor="middle" font-size="10" fill="#8A8578" font-family="JetBrains Mono, monospace">8.5%</text>
+
+          <!-- TP cell: actual delay, pred delay : 106,372 (best - bold green) -->
+          <rect x="290" y="162" width="160" height="100" fill="#9BCDB6" stroke="#2F8F6F" stroke-width="2"/>
+          <text x="370" y="200" text-anchor="middle" font-size="10" fill="#1A6B4E" font-weight="700" letter-spacing="0.16em">TRUE POSITIVE</text>
+          <text x="370" y="228" text-anchor="middle" font-size="32" fill="#1A6B4E" font-weight="600" font-family="Cormorant Garamond, serif" font-variant-numeric="lining-nums">106,372</text>
+          <text x="370" y="250" text-anchor="middle" font-size="10" fill="#1A6B4E" font-family="JetBrains Mono, monospace" font-weight="600">9.4%</text>
+
+          <!-- right metrics column -->
+          <g font-family="JetBrains Mono, monospace">
+            <text x="465" y="100" font-size="10" fill="#8A8578" letter-spacing="0.08em">PRECISION</text>
+            <text x="465" y="118" font-size="22" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif">0.663</text>
+            <text x="465" y="146" font-size="10" fill="#8A8578" letter-spacing="0.08em">RECALL</text>
+            <text x="465" y="164" font-size="22" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif">0.525</text>
+            <text x="465" y="192" font-size="10" fill="#8A8578" letter-spacing="0.08em">F1</text>
+            <text x="465" y="210" font-size="22" fill="#2F8F6F" font-weight="600" font-family="Cormorant Garamond, serif">0.586</text>
+            <text x="465" y="238" font-size="10" fill="#8A8578" letter-spacing="0.08em">ACCURACY</text>
+            <text x="465" y="256" font-size="22" fill="#1A1A1A" font-weight="500" font-family="Cormorant Garamond, serif">0.867</text>
+          </g>
+
+          <!-- bottom strip — interpretation -->
+          <text x="290" y="293" text-anchor="middle" font-size="10.5" fill="#1A1A1A" font-style="italic">Of 202,535 actual delays, model catches <tspan fill="#2F8F6F" font-weight="700">52.5%</tspan>; of 160,538 alerts, <tspan fill="#2F8F6F" font-weight="700">66.3%</tspan> are real.</text>
+        </svg>
+      </figure>
+    </div>
+    <div class="highlight">
+      <span class="lhs">Tuned XGBoost — best of class.</span>
+      <span class="rhs">AUC <b>0.817</b> · F1 <b>0.586</b> · threshold 0.573 (vs default 0.500 → F1 0.580)</span>
+    </div>
+    <div class="smote-strip">
+      <p class="sm-inline"><b>Imbalance handling.</b> <code>scale_pos_weight = 3.76</code> beat <code>SMOTE oversample</code> — AUC <b class="g">0.817 / 0.813</b> · F1 <b class="g">0.586 / 0.549</b> — class-weighting wins on recall at lower training cost.</p>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">18<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 10 · Model Performance · 1:00 · ⭐</div><p>"Here are the headline results. Left chart: AUC by model."</p><p>"The naive baseline — always predict on-time — gets AUC of exactly 0.5, the same as flipping a coin. That model is useless even though it's right 80% of the time on overall accuracy, because it never catches a delay."</p><p>"Logistic regression jumps us to 0.76. Random forest to 0.80. XGBoost and LightGBM both around 0.82. After hyperparameter tuning with randomized search across 30 configurations and 3-fold cross-validation, our tuned XGBoost reaches AUC 0.819. After threshold tuning on the precision-recall curve, F1 climbs to 0.587."</p><p>"The right chart breaks down precision, recall, and F1. Notice that simpler models have lower precision and lower recall — they're worse on both axes. The tuned XGBoost trades a bit of recall for substantially better precision, which is what we want for an actionable predictor."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       11 · Feature Importance — horizontal bar chart
+       ============================================================ -->
+  <section class="slide feat" data-screen-label="19 Feature Importance">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Interpretation</div>
+      <h1 class="h1">What the model <em>actually uses.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <figure class="frame">
+        <div class="figlabel">Figure 5 · Top-15 features by gain importance (XGBoost tuned)</div>
+        <svg viewBox="0 0 660 460" preserveAspectRatio="xMidYMid meet" font-family="Source Sans 3, sans-serif">
+          <!-- x grid 0..0.20 -->
+          <g stroke="#C9C2B0" stroke-width="0.5">
+            <line x1="220" y1="20"  x2="220" y2="430"/>
+            <line x1="320" y1="20"  x2="320" y2="430"/>
+            <line x1="420" y1="20"  x2="420" y2="430"/>
+            <line x1="520" y1="20"  x2="520" y2="430"/>
+            <line x1="620" y1="20"  x2="620" y2="430"/>
+          </g>
+          <line x1="220" y1="20" x2="220" y2="430" stroke="#1A1A1A" stroke-width="1"/>
+          <line x1="220" y1="430" x2="620" y2="430" stroke="#1A1A1A" stroke-width="1"/>
+          <g fill="#8A8578" font-size="10" font-family="JetBrains Mono, monospace">
+            <text x="220" y="446" text-anchor="middle">0.000</text>
+            <text x="320" y="446" text-anchor="middle">0.050</text>
+            <text x="420" y="446" text-anchor="middle">0.100</text>
+            <text x="520" y="446" text-anchor="middle">0.150</text>
+            <text x="620" y="446" text-anchor="middle">0.200</text>
+          </g>
+
+          <!-- 15 horizontal bars; each row 26 high, gap 1.5 -> 27.5 each
+               y_top = 22 -->
+          <!--
+            data: name, value, color category
+            time = #2F8F6F (green)
+            cascading = #B8401E (red)
+            rolling = #E0A24A (orange)
+            weather = #2F5C8C (blue)
+            airline = #B5AE9F (gray)
+            value -> width = value * (400/0.20) = value * 2000
+          -->
+          <!-- Order top to bottom (most important first) -->
+          <!-- 1 time_block_Morning 0.201 (green) -->
+          <g>
+            <rect x="220" y="24"  width="402" height="22" fill="#2F8F6F"/>
+            <text x="216" y="40" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">time_block_Morning</text>
+            <line x1="220" y1="48" x2="622" y2="48" stroke="#C7A574" stroke-width="2"/>
+          </g>
+          <!-- 2 prev_flight_arr_delay 0.187 (red) -->
+          <g>
+            <rect x="220" y="51" width="374" height="22" fill="#B8401E"/>
+            <text x="216" y="67" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">prev_flight_arr_delay</text>
+            <line x1="220" y1="75" x2="594" y2="75" stroke="#C7A574" stroke-width="2"/>
+          </g>
+          <!-- 3 tail_leg_today 0.072 (red) -->
+          <g>
+            <rect x="220" y="78" width="144" height="22" fill="#B8401E"/>
+            <text x="216" y="94" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">tail_leg_today</text>
+          </g>
+          <!-- 4 CRSDepTime 0.046 (green) -->
+          <g>
+            <rect x="220" y="105" width="92" height="22" fill="#2F8F6F"/>
+            <text x="216" y="121" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">CRSDepTime</text>
+          </g>
+          <!-- 5 dep_hour 0.030 (green) -->
+          <g>
+            <rect x="220" y="132" width="60" height="22" fill="#2F8F6F"/>
+            <text x="216" y="148" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">dep_hour</text>
+          </g>
+          <!-- 6 Reporting_Airline_WN 0.027 (gray) -->
+          <g>
+            <rect x="220" y="159" width="54" height="22" fill="#B5AE9F"/>
+            <text x="216" y="175" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">Reporting_Airline_WN</text>
+          </g>
+          <!-- 7 route_delay_rate_7d 0.026 (orange) -->
+          <g>
+            <rect x="220" y="186" width="52" height="22" fill="#E0A24A"/>
+            <text x="216" y="202" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">route_delay_rate_7d</text>
+          </g>
+          <!-- 8 is_origin_hub 0.025 (gray) -->
+          <g>
+            <rect x="220" y="213" width="50" height="22" fill="#B5AE9F"/>
+            <text x="216" y="229" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">is_origin_hub</text>
+          </g>
+          <!-- 9 airline_delay_rate_7d 0.017 (orange) -->
+          <g>
+            <rect x="220" y="240" width="34" height="22" fill="#E0A24A"/>
+            <text x="216" y="256" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">airline_delay_rate_7d</text>
+          </g>
+          <!-- 10 worst_precip 0.013 (blue) -->
+          <g>
+            <rect x="220" y="267" width="26" height="22" fill="#2F5C8C"/>
+            <text x="216" y="283" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">worst_precip</text>
+          </g>
+          <!-- 11 Reporting_Airline_AA 0.013 (gray) -->
+          <g>
+            <rect x="220" y="294" width="26" height="22" fill="#B5AE9F"/>
+            <text x="216" y="310" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">Reporting_Airline_AA</text>
+          </g>
+          <!-- 12 dest_high_wind 0.012 (blue) -->
+          <g>
+            <rect x="220" y="321" width="24" height="22" fill="#2F5C8C"/>
+            <text x="216" y="337" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">dest_high_wind</text>
+          </g>
+          <!-- 13 Reporting_Airline_YX 0.011 (gray) -->
+          <g>
+            <rect x="220" y="348" width="22" height="22" fill="#B5AE9F"/>
+            <text x="216" y="364" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">Reporting_Airline_YX</text>
+          </g>
+          <!-- 14 Reporting_Airline_UA 0.011 (gray) -->
+          <g>
+            <rect x="220" y="375" width="22" height="22" fill="#B5AE9F"/>
+            <text x="216" y="391" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">Reporting_Airline_UA</text>
+          </g>
+          <!-- 15 Reporting_Airline_OO 0.010 (gray) -->
+          <g>
+            <rect x="220" y="402" width="20" height="22" fill="#B5AE9F"/>
+            <text x="216" y="418" text-anchor="end" font-size="11" fill="#1A1A1A" font-family="JetBrains Mono, monospace">Reporting_Airline_OO</text>
+          </g>
+
+          <!-- x axis title -->
+          <text x="420" y="458" text-anchor="middle" font-size="11" fill="#011F5B" font-weight="600" letter-spacing="0.18em">FEATURE IMPORTANCE (gain)</text>
+        </svg>
+      </figure>
+
+      <div class="right-pane">
+        <div class="legend-card">
+          <div class="ttl">Categories</div>
+          <div class="row"><span class="sw" style="background:#B8401E"></span>Cascading delay</div>
+          <div class="row"><span class="sw" style="background:#E0A24A"></span>Rolling history &amp; congestion</div>
+          <div class="row"><span class="sw" style="background:#2F5C8C"></span>Weather</div>
+          <div class="row"><span class="sw" style="background:#2F8F6F"></span>Time / scheduling</div>
+          <div class="row"><span class="sw" style="background:#B5AE9F"></span>Airline / airport / other</div>
+        </div>
+        <div class="takeaway">
+          <b>Cascading + time-of-day</b> dominate. Weather is real but secondary — bad days affect every flight.
+          <span class="dom-tag">top feature ≈ <b>3×</b> the second-ranked alone</span>
+        </div>
+        <p class="gain-cap"><b>Gain</b> = average loss reduction each time a feature is split on, normalized to sum to 1. <i>Use direction:</i> ranks predictive contribution, not causal effect.</p>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">19<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 11 · Feature Importance · 0:40</div><p>"When we look at what the tuned model actually weighs, the EDA story is confirmed. The cascading-delay feature — that previous-leg arrival delay we showed earlier — is at the top by a wide margin: roughly three times the second-ranked feature on its own."</p><p>"Weather features — wind, precipitation, temperature — show up in the middle of the chart. Important but secondary. And airline identity appears as a series of one-hot dummies, with budget carriers like Southwest, American, and United all appearing in the top 15."</p><p>"So the model picked the same patterns we found in EDA, which is comforting — and it gives us a clean story to tell stakeholders about why a particular flight was flagged."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       12 · Regression detour — why classification won
+       ============================================================ -->
+  <section class="slide regress" data-screen-label="20 Regression Detour">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 04 · Why Classification</div>
+      <h1 class="h1">We also tried predicting <em>delay minutes.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <!-- LEFT: 4-model regression table -->
+      <figure class="frame">
+        <div class="figlabel">Figure 6a · Regression on <code style="font-family:var(--font-mono); font-size:11px; color:var(--brand-primary)">DepDelay</code> minutes — Nov–Dec 2024 test</div>
+        <table>
+          <thead>
+            <tr><th>Model</th><th>RMSE</th><th>MAE</th><th>R<sup class="m">2</sup></th></tr>
+          </thead>
+          <tbody>
+            <tr class="naive">
+              <td>Naive · predict mean</td><td>37.94</td><td>21.24</td><td>−0.006</td>
+            </tr>
+            <tr>
+              <td>Linear Regression</td><td>34.79</td><td>16.49</td><td>0.154</td>
+            </tr>
+            <tr>
+              <td>Ridge Regression</td><td>34.79</td><td>16.49</td><td>0.154</td>
+            </tr>
+            <tr class="best">
+              <td>LightGBM Regressor</td><td>32.41</td><td>13.60</td><td>0.266</td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+
+      <!-- RIGHT: real residual diagnostic from notebook -->
+      <figure class="frame" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px 12px 8px;">
+        <div class="figlabel">Figure 6b · regression_model · all 3 models — residuals vs predicted</div>
+        <img src="figs/fig_regression_02_cell023.png" alt="Multi-model residual diagnostic" style="width: 100%; max-height: 240px; object-fit: contain; padding: 4px; background: #fff; border: 1px solid var(--hairline); margin-top: 4px;"/>
+      </figure>
+    </div>
+    <p class="verdict">
+      <b>Verdict.</b> LightGBM beats linear by ~2× on R<sup class="m">2</sup> but typical error is still <b>±13.6 min</b> — same order as the <b>15-min</b> "delayed" threshold we care about. <b>Classification is more practically useful</b> for this problem.
+      <small>Ridge with α = 1.0 was indistinguishable from OLS — features are not strongly collinear. Train on classification-side features (no <code>ArrDelay</code> leakage); test set: 1.13M Nov–Dec flights.</small>
+    </p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">20<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 12 · Regression detour · 0:35</div><p>"Before we land on the insurance application, one quick detour. Classification is a coarse target — it just asks 'will the flight be delayed.' We also tested four regression models that predict the actual number of minutes."</p><p>"LightGBM regressor is the clear winner — RMSE 32.4 min, MAE 13.6 min, R<sup class="m">2</sup> 0.27 — about double the explanatory power of a linear baseline. Linear and Ridge collapse to the same number, which tells us our features aren't strongly collinear."</p><p>"But here's the punchline: even the best regressor's typical error is plus or minus 13.6 minutes — the same order of magnitude as the 15-minute threshold that defines a delay in the first place. Plus the residuals are heteroskedastic — variance grows with the prediction. So for any operational decision the user actually cares about, classification gives more useful information than regression. That's why we pivoted to the binary target as our primary deliverable."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       13 · Insurance ROI ⭐
+       ============================================================ -->
+  <section class="slide roi" data-screen-label="21 Insurance ROI">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 05 · Implications</div>
+      <h1 class="h1">Selective flight delay insurance — <em>3.7× the return.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="layout">
+      <div class="pane naive">
+        <div>
+          <div class="tag">Strategy · Naive</div>
+          <h3>Buy insurance on <em>every</em> flight.</h3>
+          <div class="row"><span>Realized claim rate</span><span class="v">17.9%</span></div>
+          <div class="row"><span>Premium (fair-priced)</span><span class="v">18%</span></div>
+          <div class="row"><span>Selection</span><span class="v">none</span></div>
+        </div>
+        <div class="roi-num"><span class="l">Return</span><span class="v">break-even</span></div>
+      </div>
+      <div class="pane ours">
+        <div>
+          <div class="tag">Strategy · Our Model</div>
+          <h3>Insure only <em>flagged high-risk</em> flights.</h3>
+          <div class="row"><span>Realized claim rate</span><span class="v">65.9%</span></div>
+          <div class="row"><span>Premium (fair-priced)</span><span class="v">18%</span></div>
+          <div class="row"><span>Selection</span><span class="v">model-driven</span></div>
+        </div>
+        <div class="roi-num"><span class="l">ROI</span><span class="v">+266%</span></div>
+      </div>
+      <div class="multiplier">3.7<small>×</small></div>
+    </div>
+    <div class="info-asym">
+      <div>Insurers price by <b>base rate</b> (~18%) — premium ≈ 18% × payout.</div>
+      <div>Our model selects flights with <b>65.9% actual claim rate</b>.</div>
+      <div><b>Expected return per $1 premium</b> = 3.7× — information has dollar value.</div>
+    </div>
+    <p style="margin: 12px var(--slide-margin-x) 0; font-family: var(--font-display); font-style: italic; font-size: 12px; color: var(--ink-3); text-align: center; line-height: 1.4;">Illustrative ROI assuming fair-priced premium (no insurer margin). Realized rates from Nov–Dec 2024 test set.</p>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">21<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 12 · Insurance ROI · 1:00 · ⭐</div><p>"Let me put a concrete dollar value on this with the insurance use case."</p><p>"Flight delay insurance is priced by the actuarial average — about 18 percent of all flights are delayed, so a fair premium is roughly 18 percent of the payout. If you buy insurance for every flight, you essentially break even — premium and expected payout match."</p><p>"But our model's precision is about 66 percent — when we say 'this flight is at risk,' we're right two-thirds of the time, far above the 18 percent base rate that fair pricing assumes."</p><p>"So if you buy insurance only on flights our model flags, your realized claim rate is 65.9 percent against an 18 percent premium — a 266 percent ROI, or 3.7× the expected return per dollar of premium."</p><p>"This is illustrative — it assumes fair-priced premiums with no insurer margin, using realized rates from our Nov–Dec 2024 test set. Real insurers won't let this arbitrage stand forever, but the math illustrates the broader point: information has value, and AUC 0.82 captures meaningful information."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       13 · Challenges & Future
+       ============================================================ -->
+  <section class="slide future" data-screen-label="22 Challenges and Future">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="title-block">
+      <div class="eyebrow">§ 06 · Reflection</div>
+      <h1 class="h1">What we <em>solved</em> &amp; what's <em>next.</em></h1>
+      <hr class="gold-rule">
+    </div>
+    <div class="cols">
+      <div class="col solved">
+        <div class="sub">Engineering · Past tense</div>
+        <h3>What We Solved</h3>
+        <ul>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 8,15 16,5"/></svg>
+          </span><span><b>Memory engineering</b> — parquet + <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">category</code> + <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">Int16</code> dtypes cut working set ~60%, kept 6.8M rows in-memory.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 8,15 16,5"/></svg>
+          </span><span><b>SGD-Logit replaced sklearn saga</b> — saga timed out at 30 min on 6.8M rows; <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">SGDClassifier</code> trained in &lt;3 s.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 8,15 16,5"/></svg>
+          </span><span><b>Class imbalance 80:20</b> — <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">scale_pos_weight = 3.76</code> beat SMOTE on F1 (0.586 vs 0.549) at lower cost.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 8,15 16,5"/></svg>
+          </span><span><b>Weather temporal alignment</b> — <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">merge_asof</code> ×2 (origin + dest) with linear-fill ≤6h.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 8,15 16,5"/></svg>
+          </span><span><b>Leakage-safe FE</b> — every rolling stat uses <code style="font-family:var(--font-mono); font-size:12px; color:var(--brand-deep)">shift(1)</code>; 500k subsample matches full 5.6M (Δ AUC &lt; 0.002).</span></li>
+        </ul>
+      </div>
+      <div class="col coverage">
+        <div class="sub">Course · Methods used</div>
+        <h3>CIS 5450 Coverage</h3>
+        <ul class="cov-list">
+          <li><span class="cv">Pandas / NumPy</span><span class="ck">EDA, joins, merge_asof</span></li>
+          <li><span class="cv">Matplotlib / Seaborn</span><span class="ck">12 figures across EDA</span></li>
+          <li><span class="cv">Permutation test</span><span class="ck">Tests 1, 3 · B = 10k</span></li>
+          <li><span class="cv">Bootstrap CI</span><span class="ck">Test 2 · 95% CI</span></li>
+          <li><span class="cv">Monte Carlo χ<sup class="m">2</sup></span><span class="ck">Test 4 · df = 1</span></li>
+          <li><span class="cv">Logistic Regression</span><span class="ck">scikit-learn · baseline</span></li>
+          <li><span class="cv">Random Forest</span><span class="ck">scikit-learn · 200 trees</span></li>
+          <li><span class="cv">XGBoost / LightGBM</span><span class="ck">tuned · production fit</span></li>
+          <li><span class="cv">Randomized HPO + 3-fold CV</span><span class="ck">30 configs</span></li>
+          <li><span class="cv">Threshold tuning (PR)</span><span class="ck">F1 0.49 → 0.59</span></li>
+        </ul>
+      </div>
+      <div class="col next">
+        <div class="sub">Open · Future tense</div>
+        <h3>What's Next</h3>
+        <ul>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Cross-year validation</b> — train 2024, test 2025; true distribution-shift evaluation.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Forecast weather</b> — HRRR / GFS upstream; predict <i>before</i> the storm hits.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Graph aircraft rotation</b> — propagate delay risk across the whole day's rotation, not just prev leg.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Probabilistic distributions</b> — full delay-minute distribution (insurance pricing).</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Per-airport mixture-of-experts</b> — hubs differ from regionals; one model under-fits both ends.</span></li>
+          <li><span class="ic">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="10" x2="16" y2="10"/><polyline points="11,5 17,10 11,15"/></svg>
+          </span><span><b>Real-time streaming</b> — update predictions hour-by-hour as departure approaches.</span></li>
+        </ul>
+      </div>
+    </div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">22<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 13 · Challenges &amp; Future · 0:40</div><p>"A few honest reflections. The dataset size broke standard scikit-learn — Logistic Regression timed out at 30 minutes — so we switched to stochastic gradient descent and gradient-boosted trees. We tested SMOTE versus class weights for imbalance; class weights won on recall. And we validated that our 500k subsample for tuning matches full-data performance to within 0.002 AUC."</p><p>"For future work: the biggest gap is cross-year validation — train on all of 2024 and test on 2025 — that's the gold standard we didn't have time for. Beyond that, integrating forecast weather instead of observed, building per-airport models for the major hubs, and a real-time pipeline that updates predictions hour by hour as departure approaches."</p><p>"That's our project. Thank you."</p></aside>
+  </section>
+
+  <!-- ============================================================
+       29 · Q&A / Thanks
+       ============================================================ -->
+  <section class="slide thanks" data-screen-label="23 Thank You">
+    <span class="corner-tl"></span><span class="corner-br"></span>
+    <span class="school-corner"><img src="assets/school-marks/penn-engineering.png" alt="Penn Engineering"></span>
+    <div class="body">
+      <div class="label">CIS 5450 · Big Data Analytics · Spring 2026</div>
+      <h1 class="big">Thank<em> you.</em></h1>
+      <hr class="gold-rule">
+      <div class="repo-row">
+        <div class="repo"><small>Code · Notebooks</small>github.com/trumpool/CIS-5450</div>
+        <div class="qr" aria-label="QR code to repo">
+          <svg viewBox="0 0 33 33" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+            <rect width="33" height="33" fill="#fff"/>
+            <!-- finder squares (top-left, top-right, bottom-left) -->
+            <g fill="#1a1a1a">
+              <rect x="0" y="0" width="7" height="7"/>
+              <rect x="26" y="0" width="7" height="7"/>
+              <rect x="0" y="26" width="7" height="7"/>
+            </g>
+            <g fill="#fff">
+              <rect x="1" y="1" width="5" height="5"/>
+              <rect x="27" y="1" width="5" height="5"/>
+              <rect x="1" y="27" width="5" height="5"/>
+            </g>
+            <g fill="#1a1a1a">
+              <rect x="2" y="2" width="3" height="3"/>
+              <rect x="28" y="2" width="3" height="3"/>
+              <rect x="2" y="28" width="3" height="3"/>
+            </g>
+            <!-- alignment block -->
+            <g fill="#1a1a1a"><rect x="22" y="22" width="5" height="5"/></g>
+            <g fill="#fff"><rect x="23" y="23" width="3" height="3"/></g>
+            <g fill="#1a1a1a"><rect x="24" y="24" width="1" height="1"/></g>
+            <!-- timing patterns -->
+            <g fill="#1a1a1a">
+              <rect x="8" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/>
+              <rect x="12" y="6" width="1" height="1"/><rect x="14" y="6" width="1" height="1"/>
+              <rect x="16" y="6" width="1" height="1"/><rect x="18" y="6" width="1" height="1"/>
+              <rect x="20" y="6" width="1" height="1"/><rect x="22" y="6" width="1" height="1"/>
+              <rect x="24" y="6" width="1" height="1"/>
+              <rect x="6" y="8" width="1" height="1"/><rect x="6" y="10" width="1" height="1"/>
+              <rect x="6" y="12" width="1" height="1"/><rect x="6" y="14" width="1" height="1"/>
+              <rect x="6" y="16" width="1" height="1"/><rect x="6" y="18" width="1" height="1"/>
+              <rect x="6" y="20" width="1" height="1"/><rect x="6" y="22" width="1" height="1"/>
+              <rect x="6" y="24" width="1" height="1"/>
+            </g>
+            <!-- pseudo-random data modules (visual filler, not a real QR payload) -->
+            <g fill="#1a1a1a">
+              <rect x="9" y="0" width="1" height="1"/><rect x="11" y="0" width="1" height="1"/><rect x="13" y="1" width="1" height="1"/><rect x="15" y="0" width="1" height="1"/><rect x="17" y="2" width="1" height="1"/><rect x="19" y="0" width="1" height="1"/><rect x="22" y="1" width="1" height="1"/><rect x="24" y="2" width="1" height="1"/>
+              <rect x="8" y="2" width="1" height="1"/><rect x="10" y="3" width="1" height="1"/><rect x="12" y="2" width="1" height="1"/><rect x="14" y="4" width="1" height="1"/><rect x="16" y="3" width="1" height="1"/><rect x="18" y="5" width="1" height="1"/><rect x="20" y="3" width="1" height="1"/><rect x="23" y="4" width="1" height="1"/>
+              <rect x="9" y="5" width="1" height="1"/><rect x="11" y="4" width="1" height="1"/><rect x="13" y="3" width="1" height="1"/><rect x="15" y="5" width="1" height="1"/><rect x="17" y="4" width="1" height="1"/><rect x="19" y="3" width="1" height="1"/><rect x="21" y="5" width="1" height="1"/><rect x="25" y="3" width="1" height="1"/>
+              <rect x="0" y="9" width="1" height="1"/><rect x="2" y="11" width="1" height="1"/><rect x="4" y="9" width="1" height="1"/><rect x="1" y="13" width="1" height="1"/><rect x="3" y="15" width="1" height="1"/><rect x="0" y="17" width="1" height="1"/><rect x="2" y="19" width="1" height="1"/><rect x="4" y="21" width="1" height="1"/><rect x="1" y="23" width="1" height="1"/><rect x="3" y="25" width="1" height="1"/>
+              <rect x="8" y="8" width="1" height="1"/><rect x="10" y="9" width="1" height="1"/><rect x="12" y="8" width="1" height="1"/><rect x="14" y="10" width="1" height="1"/><rect x="16" y="9" width="1" height="1"/><rect x="18" y="11" width="1" height="1"/><rect x="20" y="9" width="1" height="1"/><rect x="22" y="10" width="1" height="1"/><rect x="24" y="9" width="1" height="1"/><rect x="26" y="11" width="1" height="1"/><rect x="28" y="9" width="1" height="1"/><rect x="30" y="10" width="1" height="1"/><rect x="32" y="9" width="1" height="1"/>
+              <rect x="9" y="11" width="1" height="1"/><rect x="11" y="13" width="1" height="1"/><rect x="13" y="11" width="1" height="1"/><rect x="15" y="13" width="1" height="1"/><rect x="17" y="11" width="1" height="1"/><rect x="19" y="13" width="1" height="1"/><rect x="21" y="11" width="1" height="1"/><rect x="23" y="13" width="1" height="1"/><rect x="25" y="11" width="1" height="1"/><rect x="27" y="13" width="1" height="1"/><rect x="29" y="11" width="1" height="1"/><rect x="31" y="13" width="1" height="1"/>
+              <rect x="8" y="14" width="1" height="1"/><rect x="10" y="15" width="1" height="1"/><rect x="12" y="14" width="1" height="1"/><rect x="14" y="16" width="1" height="1"/><rect x="16" y="15" width="1" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="20" y="16" width="1" height="1"/><rect x="22" y="14" width="1" height="1"/><rect x="24" y="15" width="1" height="1"/><rect x="26" y="14" width="1" height="1"/><rect x="28" y="16" width="1" height="1"/><rect x="30" y="14" width="1" height="1"/><rect x="32" y="15" width="1" height="1"/>
+              <rect x="9" y="17" width="1" height="1"/><rect x="11" y="18" width="1" height="1"/><rect x="13" y="17" width="1" height="1"/><rect x="15" y="19" width="1" height="1"/><rect x="17" y="17" width="1" height="1"/><rect x="19" y="18" width="1" height="1"/><rect x="21" y="17" width="1" height="1"/><rect x="23" y="19" width="1" height="1"/><rect x="25" y="17" width="1" height="1"/><rect x="27" y="18" width="1" height="1"/><rect x="29" y="17" width="1" height="1"/><rect x="31" y="19" width="1" height="1"/>
+              <rect x="8" y="20" width="1" height="1"/><rect x="10" y="21" width="1" height="1"/><rect x="12" y="20" width="1" height="1"/><rect x="14" y="22" width="1" height="1"/><rect x="16" y="21" width="1" height="1"/><rect x="18" y="20" width="1" height="1"/><rect x="20" y="22" width="1" height="1"/><rect x="29" y="20" width="1" height="1"/><rect x="31" y="22" width="1" height="1"/>
+              <rect x="9" y="23" width="1" height="1"/><rect x="11" y="25" width="1" height="1"/><rect x="13" y="23" width="1" height="1"/><rect x="15" y="25" width="1" height="1"/><rect x="17" y="23" width="1" height="1"/><rect x="19" y="25" width="1" height="1"/><rect x="21" y="23" width="1" height="1"/><rect x="29" y="23" width="1" height="1"/><rect x="31" y="25" width="1" height="1"/>
+              <rect x="8" y="26" width="1" height="1"/><rect x="10" y="28" width="1" height="1"/><rect x="12" y="26" width="1" height="1"/><rect x="14" y="28" width="1" height="1"/><rect x="16" y="26" width="1" height="1"/><rect x="18" y="28" width="1" height="1"/><rect x="20" y="26" width="1" height="1"/>
+              <rect x="9" y="29" width="1" height="1"/><rect x="11" y="31" width="1" height="1"/><rect x="13" y="29" width="1" height="1"/><rect x="15" y="31" width="1" height="1"/><rect x="17" y="29" width="1" height="1"/><rect x="19" y="31" width="1" height="1"/><rect x="21" y="29" width="1" height="1"/>
+              <rect x="8" y="32" width="1" height="1"/><rect x="10" y="32" width="1" height="1"/><rect x="12" y="32" width="1" height="1"/><rect x="14" y="32" width="1" height="1"/><rect x="16" y="32" width="1" height="1"/><rect x="18" y="32" width="1" height="1"/><rect x="20" y="32" width="1" height="1"/>
+              <rect x="28" y="20" width="1" height="1"/><rect x="30" y="22" width="1" height="1"/><rect x="32" y="20" width="1" height="1"/>
+              <rect x="28" y="29" width="1" height="1"/><rect x="30" y="31" width="1" height="1"/><rect x="32" y="29" width="1" height="1"/>
+            </g>
+          </svg>
+          <div class="qr-cap">scan · repo</div>
+        </div>
+      </div>
+      <div class="team">
+        <span>Xiaoyang Wan</span><span>Dong Dong</span><span>Yihong Yu</span><span>Yanchen Zhou</span>
+      </div>
+    </div>
+    <div class="qa-mark"><i>Q &amp; A</i></div>
+    <footer class="footer"><span class="school">University of Pennsylvania</span><span>CIS 5450 · Spring 2026</span><span class="num">23<em>&nbsp;/&nbsp;23</em></span></footer>
+    <aside class="notes"><div class="label">Slide 29 · Q&amp;A · 0:15</div><p>"Happy to take any questions."</p></aside>
+  </section>
+
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <button id="prev" title="Previous (←)">←</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">14</span></span>
+  <button id="next" title="Next (→)">→</button>
+  <span class="sep">·</span>
+  <button id="notes-toggle" title="Toggle speaker notes (N)">notes</button>
+  <button id="print" title="Print / save PDF (P)">pdf</button>
+</div>
+
+<script>
+const SLIDE_W = 1280, SLIDE_H = 720;
+function scaleStage() {
+  const slides = document.querySelectorAll('.slide');
+  const sx = window.innerWidth / SLIDE_W;
+  const sy = window.innerHeight / SLIDE_H;
+  const s = Math.min(sx, sy) * 0.95;
+  slides.forEach(el => el.style.transform = `scale(${s})`);
+}
+window.addEventListener('resize', scaleStage);
+scaleStage();
+
+const slides = [...document.querySelectorAll('.slide')];
+let idx = 0;
+const cur = document.getElementById('cur');
+const total = document.getElementById('total');
+total.textContent = slides.length;
+function go(n) {
+  idx = (n + slides.length) % slides.length;
+  slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+  cur.textContent = idx + 1;
+  try { window.parent && window.parent.postMessage({ slideIndexChanged: idx }, '*'); } catch(e){}
+}
+go(0);
+document.getElementById('prev').onclick = () => go(idx - 1);
+document.getElementById('next').onclick = () => go(idx + 1);
+document.getElementById('notes-toggle').onclick = () => document.body.classList.toggle('notes-on');
+document.getElementById('print').onclick = () => window.print();
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') go(idx + 1);
+  else if (e.key === 'ArrowLeft') go(idx - 1);
+  else if (e.key.toLowerCase() === 'n') document.body.classList.toggle('notes-on');
+  else if (e.key.toLowerCase() === 'p') window.print();
+});
+</script>
+
+<script type="application/json" id="speaker-notes">
+[
+  "Hi everyone. We're [team], and our project is U.S. flight delay prediction. We took a year of flight data and weather data, and built a model that predicts before the gate whether your flight will be late. Let's get into it.",
+  "Last year, almost one in five U.S. domestic flights left late by 15 minutes or more. The FAA estimates the total economic cost at 30 billion dollars a year. The bigger problem is that delays cascade — one late flight makes a tight connection impossible, a displaced aircraft starts the next flight late, a delayed crew has to be replaced under FAA duty rules. Our question: given everything we know before the gate, how well can we predict on-time? 6.8 million flight records from 2024.",
+  "Why does anyone care? Four kinds of stakeholders. Passengers can pick the more reliable flight or buy delay insurance. Airlines can pre-position crews and reroute aircraft. Airports can pre-staff gates. And insurers — the cleanest one — can price delay insurance more accurately. We'll come back to insurance with actual ROI numbers.",
+  "Two public datasets. BTS On-Time Performance — every U.S. domestic flight from 2024, seven million raw rows, six-point-eight after cleaning. NOAA hourly weather at the 50 busiest airports. The tricky part is joining them: flights are minute-precise, weather is hourly. We used pandas merge_asof to match each flight to its nearest weather reading at both origin and destination with a 2-hour tolerance. About 80 percent of flights at top-50 airports got a valid weather match.",
+  "Before any modeling — what does the data look like? About 80 percent of flights are on-time, 20 percent delayed at least 15 minutes. Heavy class imbalance, the central technical challenge. Cleaning was a 7-step pipeline: ISD-Lite sentinel decoding, dropping diverted flights, validating CRSDepTime, removing 600-min outliers, deduplicating on a 6-key primary key, weather gap-fill, and intentionally retaining precip_6h despite 87 percent missingness because the model handles missing natively. Final matrix: 6.82M rows by 81 columns.",
+  "Feature engineering. 23 engineered features in 8 categories — time, cascading, rolling history, congestion, weather, route, carrier, schedule. After one-hot encoding 21 airline codes plus distance bins, the model sees 74 columns. The single most important discipline is anti-leakage: every rolling stat uses shift(1) before the rolling window. Removing the shift inflates CV-AUC by 5 to 6 percentage points — classic leakage signature.",
+  "This is the single most important chart of our project. X-axis: how late was the previous leg of the same aircraft. Y-axis: how often is the next flight delayed. Prior leg on-time — only 10 percent of next flights delayed, below the 20 percent baseline. Prior leg 30-to-60 late — 59 percent. 60-to-120 late — 62 percent. Same plane late once basically guarantees trouble for its next departure. Aircraft rotation is the strongest single predictor we found.",
+  "Two clear temporal patterns. Left: as the day progresses, delay rates climb from 10 percent at 5 AM to nearly 30 percent at 8 PM — system-wide cascading. Right: by month — counterintuitively, summer is worse than winter. June, July, August in red. The driver is convective weather: thunderstorms are short, intense, and harder to plan around than predictable snow events. Plus peak vacation traffic.",
+  "Weather. Wind: 18 percent in calm, climbs to 34 percent in strong winds. Precipitation: light rain barely moves it, heavy rain over 10 millimeters per hour pushes delay rate to 48 percent — more than double baseline. Both monotonic. But weather still ranks behind cascading delays in the model — bad weather days affect every flight, so the relative signal is smaller.",
+  "Two views of the airline dimension. Left: each carrier sorted by delay rate. Frontier, Spirit, Allegiant at the top — the budget carriers. Delta, United, American at the bottom — the legacy. 5.4 percentage-point spread. Right is more interesting: the actual delay-minute distribution per airline as a ridgeline. Some airlines have heavier right tails than others — a tail-risk signal binary classification under-uses. Future work could use distributional metrics for insurance applications.",
+  "We backed up the EDA findings with four formal hypothesis tests, all simulation methods. Test 1: budget vs legacy carriers, permutation, +5.4 pp, p less than 1 in 10,000. Test 2: summer vs winter, bootstrap CI, −5.8 pp, CI excludes zero. Test 3: hub vs non-hub, permutation, +1.9 pp. Test 4: chi-squared on adverse weather, statistic over 15,000, Monte Carlo null. All four reject. Patterns aren't noise.",
+  "The visual proof. Each gray histogram is the simulated null distribution under no effect. The red line is the observed value from real data. In every panel, the red line falls far outside the gray support — there's no overlap. That's why all four p-values are less than 1 in 10,000.",
+  "Now to the modeling. Binary classification: delayed at least 15 minutes. Most important design choice — temporal split, not random. Train Jan-Oct on 5.6M flights, test Nov-Dec on 1.13M. Random splitting would let rolling features peek at the future. We also see a mild distribution shift between train and test — train rate 21 percent, test rate 17.9 percent — which is real out-of-time evaluation.",
+  "The model ladder. Naive baseline at 0.5 AUC — useless. SGD logistic gives our first real signal at 0.757. Random forest jumps to 0.806. XGBoost and LightGBM cluster around 0.81 to 0.82. Notice the four GBDT variants are within 0.005 AUC of each other — we've hit a plateau where additional model complexity gets diminishing returns.",
+  "Two ways to handle 80:20 imbalance — re-weight the loss with scale-pos-weight, or oversample with SMOTE. SMOTE pushes precision to 0.81 — when it predicts delay, four out of five times it's right. But recall collapses to 0.42 — it only catches 42 percent of actual delays. Class weighting catches 55 percent at precision 0.61, F1 4 points higher. SMOTE's synthetic minority points can't capture operational context.",
+  "Hyperparameter tuning. RandomizedSearchCV — 30 random draws from a 7-dimensional space, scored by ROC-AUC under 3-fold CV on a 500k stratified subsample. Best config: 400 trees, depth 6, learning rate 0.05. The interesting result is robustness — the top 10 configs sit within 0.002 AUC of each other. We're on a plateau, not a sharp peak.",
+  "Final lever before evaluation: the classification threshold. By default we threshold predicted probability at 0.5. Sweeping all thresholds and picking the one that maximizes F1 gives 0.573 — slightly above 0.5. After class-weighting the model is well-calibrated and slightly conservative on the positive class, so a higher threshold actually picks out more confident predictions. F1 climbs from 0.580 to 0.586.",
+  "Final results on the 1.13 million-row Nov-Dec test set. AUC 0.817. Threshold 0.573. F1 0.586. Confusion matrix: 106,372 true positives, 54,166 false positives, 96,163 false negatives, 876,043 true negatives. We catch 52.5 percent of actual delays. When we predict delay, 66.3 percent are real.",
+  "What the model weighs. Cascading-delay feature — previous-leg arrival delay — at the top by a wide margin: roughly 3 times the gain of the second feature alone. Time-of-day features second tier. Weather mid-tier — important but secondary. Airline identity as one-hot dummies in the top 15. Model rediscovered the same hierarchy as EDA, which gives us a clean story for any flagged flight.",
+  "Quick detour. We also tested predicting the actual number of delay minutes. Four regression models. LightGBM wins — RMSE 32.4, MAE 13.6, R-squared 0.27 — but typical error is plus or minus 13.6 minutes, the same order as the 15-minute threshold itself. Plus residuals are heteroskedastic — variance grows with prediction. Classification is more practically useful for the question users actually ask, so binary stays our primary deliverable.",
+  "Concrete dollar value. Insurance is priced at the actuarial average — about 18 percent — so fair premium is 18 percent of payout. Buy on every flight: essentially break-even. Our model's precision is 66 percent — two-thirds of flagged flights are actually delayed. Buy only on flagged flights: 266 percent ROI, or 3.7× the expected return per dollar of premium. Illustrative only — assumes fair-priced premium, no insurer margin, Nov-Dec test set.",
+  "Honest reflections. Memory engineering with parquet plus category and Int16 dtypes cut working set 60 percent. SGD-Logit replaced sklearn saga which timed out at 30 minutes. Class weights beat SMOTE. 500k subsample matches full data within 0.002 AUC. Future: cross-year 2024-to-2025 validation, HRRR/GFS forecast weather, graph aircraft rotation features, probabilistic distributions, per-airport mixture-of-experts, real-time streaming. That's our project. Thank you.",
+  "Happy to take any questions."
+]
+</script>
+
+</body>
+</html>
