@@ -33,7 +33,7 @@
     overflow: hidden; transform-origin: center;
     box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);
   }
-  .slide:not(.active) { display: none !important; }
+  @media screen { .slide:not(.active) { display: none !important; } }
 
   /* corner brackets + slide num */
   .corner-tl, .corner-br {
